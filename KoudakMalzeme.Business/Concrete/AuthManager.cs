@@ -1,18 +1,15 @@
 using KoudakMalzeme.Business.Abstract;
-using KoudakMalzeme.Shared.Dtos;
 using KoudakMalzeme.DataAccess;
+using KoudakMalzeme.Shared.Dtos;
 using KoudakMalzeme.Shared.Entities;
 using KoudakMalzeme.Shared.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace KoudakMalzeme.Business.Concrete
 {
@@ -29,25 +26,63 @@ namespace KoudakMalzeme.Business.Concrete
 
 		public async Task<ServiceResult<AuthResponseDto>> LoginAsync(UserLoginDto loginDto)
 		{
-			var user = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.Email == loginDto.Email);
+			var user = await _context.Kullanicilar.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
 			if (user == null)
 				return ServiceResult<AuthResponseDto>.Basarisiz("Kullanıcı bulunamadı.");
 
 			if (!VerifyPasswordHash(loginDto.Password, user.PasswordHash, user.PasswordSalt))
 				return ServiceResult<AuthResponseDto>.Basarisiz("Şifre hatalı.");
 
-			// HATA BURADAYDI: Doğrudan CreateToken çağırıyoruz.
-			return CreateToken(user);
+			string token = CreateToken(user);
+
+			var response = new AuthResponseDto
+			{
+				Token = token,
+				AdSoyad = $"{user.Ad} {user.Soyad}",
+				Rol = user.Rol.ToString(),
+				IlkGirisYapildiMi = user.IlkGirisYapildiMi,
+				Expiration = DateTime.Now.AddDays(1)
+			};
+
+			return ServiceResult<AuthResponseDto>.Basarili(response);
 		}
 
-		public async Task<ServiceResult<string>> AdminUyeEkleAsync(AdminUyeEkleDto dto)
+		public async Task<ServiceResult<Kullanici>> RegisterAsync(UserRegisterDto registerDto)
 		{
-			if (await UserExists(dto.Email))
-				return ServiceResult<string>.Basarisiz("Bu e-posta zaten kayıtlı.");
+			if (await _context.Kullanicilar.AnyAsync(u => u.Email == registerDto.Email))
+				return ServiceResult<Kullanici>.Basarisiz("Bu e-posta zaten kayıtlı.");
 
-			// Rastgele Şifre (6 haneli)
-			string geciciSifre = new Random().Next(100000, 999999).ToString();
+			CreatePasswordHash(registerDto.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
+			var user = new Kullanici
+			{
+				OkulNo = registerDto.OkulNo,
+				Ad = registerDto.Ad,
+				Soyad = registerDto.Soyad,
+				Email = registerDto.Email,
+				Telefon = registerDto.Telefon,
+				Rol = KullaniciRolu.Uye,
+				PasswordHash = passwordHash,
+				PasswordSalt = passwordSalt,
+				IlkGirisYapildiMi = false // İlk girişte şifre değiştirmeli
+			};
+
+			_context.Kullanicilar.Add(user);
+			await _context.SaveChangesAsync();
+
+			return ServiceResult<Kullanici>.Basarili(user, "Kullanıcı başarıyla oluşturuldu.");
+		}
+
+		public async Task<ServiceResult<Kullanici>> AdminUyeEkleAsync(AdminUyeEkleDto dto)
+		{
+			if (await _context.Kullanicilar.AnyAsync(u => u.Email == dto.Email))
+				return ServiceResult<Kullanici>.Basarisiz("Bu e-posta kullanımda.");
+
+			if (await _context.Kullanicilar.AnyAsync(u => u.OkulNo == dto.OkulNo))
+				return ServiceResult<Kullanici>.Basarisiz("Bu okul numarası kullanımda.");
+
+			// Geçici şifre: Okul numarasının son 4 hanesi veya sabit bir değer
+			string geciciSifre = "Koudak123!";
 			CreatePasswordHash(geciciSifre, out byte[] passwordHash, out byte[] passwordSalt);
 
 			var user = new Kullanici
@@ -56,20 +91,21 @@ namespace KoudakMalzeme.Business.Concrete
 				Email = dto.Email,
 				Ad = dto.Ad ?? "",
 				Soyad = dto.Soyad ?? "",
-				Telefon = "",
+				Telefon = "", // Boş bırakılabilir veya dummy data
+				Rol = KullaniciRolu.Uye,
 				PasswordHash = passwordHash,
 				PasswordSalt = passwordSalt,
-				Rol = KullaniciRolu.Uye,
-				IlkGirisYapildiMi = false // Zorunlu güncelleme bayrağı
+				IlkGirisYapildiMi = false,
+				OlusturulmaTarihi = DateTime.Now
 			};
 
 			_context.Kullanicilar.Add(user);
 			await _context.SaveChangesAsync();
 
-			return ServiceResult<string>.Basarili(geciciSifre, "Kullanıcı oluşturuldu. Geçici Şifre: " + geciciSifre);
+			return ServiceResult<Kullanici>.Basarili(user, $"Üye eklendi. Geçici Şifre: {geciciSifre}");
 		}
 
-		public async Task<ServiceResult<bool>> IlkGirisTamamlaAsync(IlkGirisGuncellemeDto dto)
+		public async Task<ServiceResult<bool>> IlkGirisGuncellemeAsync(IlkGirisGuncellemeDto dto)
 		{
 			var user = await _context.Kullanicilar.FindAsync(dto.KullaniciId);
 			if (user == null) return ServiceResult<bool>.Basarisiz("Kullanıcı bulunamadı.");
@@ -84,55 +120,35 @@ namespace KoudakMalzeme.Business.Concrete
 			user.Telefon = dto.Telefon;
 			user.PasswordHash = passwordHash;
 			user.PasswordSalt = passwordSalt;
+			user.IlkGirisYapildiMi = true; // Artık kurulum tamamlandı
 
-			user.IlkGirisYapildiMi = true; // KİLİT NOKTA
-
-			_context.Kullanicilar.Update(user);
 			await _context.SaveChangesAsync();
 
-			return ServiceResult<bool>.Basarili(true, "Hesap kurulumu tamamlandı.");
+			return ServiceResult<bool>.Basarili(true);
 		}
 
-		private async Task<bool> UserExists(string email)
+		// --- YENİ EKLENEN METOTLAR (DOĞRU YERDE) ---
+
+		public async Task<ServiceResult<List<Kullanici>>> TumKullanicilariGetirAsync()
 		{
-			return await _context.Kullanicilar.AnyAsync(x => x.Email == email);
+			var kullanicilar = await _context.Kullanicilar
+				.OrderBy(u => u.Ad)
+				.ToListAsync();
+
+			return ServiceResult<List<Kullanici>>.Basarili(kullanicilar);
 		}
 
-		private ServiceResult<AuthResponseDto> CreateToken(Kullanici user)
+		public async Task<ServiceResult<Kullanici>> GetirByIdAsync(int id)
 		{
-			var claims = new List<Claim>
-			{
-				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-				new Claim(ClaimTypes.Email, user.Email),
-				new Claim(ClaimTypes.Name, $"{user.Ad} {user.Soyad}"),
-				new Claim(ClaimTypes.Role, user.Rol.ToString())
-			};
+			var kullanici = await _context.Kullanicilar.FindAsync(id);
 
-			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
-				_configuration.GetSection("AppSettings:Token").Value ?? "bu_varsayilan_cok_uzun_bir_gizli_anahtardir_en_az_64_karakter_olmali_ki_guvenli_olsun_123456789"));
+			if (kullanici == null)
+				return ServiceResult<Kullanici>.Basarisiz("Kullanıcı bulunamadı.");
 
-			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
-
-			var tokenDescriptor = new SecurityTokenDescriptor
-			{
-				Subject = new ClaimsIdentity(claims),
-				Expires = DateTime.Now.AddDays(1),
-				SigningCredentials = creds
-			};
-
-			var tokenHandler = new JwtSecurityTokenHandler();
-			var token = tokenHandler.CreateToken(tokenDescriptor);
-			var tokenString = tokenHandler.WriteToken(token);
-
-			return ServiceResult<AuthResponseDto>.Basarili(new AuthResponseDto
-			{
-				Token = tokenString,
-				AdSoyad = $"{user.Ad} {user.Soyad}".Trim(),
-				Rol = user.Rol.ToString(),
-				IlkGirisYapildiMi = user.IlkGirisYapildiMi, // EKLENDİ
-				Expiration = tokenDescriptor.Expires.Value
-			}, "Giriş başarılı.");
+			return ServiceResult<Kullanici>.Basarili(kullanici);
 		}
+
+		// --- Yardımcı Metotlar ---
 
 		private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
 		{
@@ -148,12 +164,29 @@ namespace KoudakMalzeme.Business.Concrete
 			using (var hmac = new HMACSHA512(storedSalt))
 			{
 				var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
-				for (int i = 0; i < computedHash.Length; i++)
-				{
-					if (computedHash[i] != storedHash[i]) return false;
-				}
+				return computedHash.SequenceEqual(storedHash);
 			}
-			return true;
+		}
+
+		private string CreateToken(Kullanici user)
+		{
+			var claims = new List<Claim>
+			{
+				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+				new Claim(ClaimTypes.Name, $"{user.Ad} {user.Soyad}"),
+				new Claim(ClaimTypes.Role, user.Rol.ToString())
+			};
+
+			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
+			var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
+
+			var token = new JwtSecurityToken(
+				claims: claims,
+				expires: DateTime.Now.AddDays(1),
+				signingCredentials: creds
+			);
+
+			return new JwtSecurityTokenHandler().WriteToken(token);
 		}
 	}
 }

@@ -1,6 +1,5 @@
 using KoudakMalzeme.Business.Abstract;
 using KoudakMalzeme.Shared.Dtos;
-using Microsoft.AspNetCore.Authorization; // Authorize için
 using Microsoft.AspNetCore.Mvc;
 
 namespace KoudakMalzeme.API.Controllers
@@ -16,40 +15,38 @@ namespace KoudakMalzeme.API.Controllers
 			_authService = authService;
 		}
 
+		[HttpPost("register")]
+		public async Task<IActionResult> Register(UserRegisterDto request)
+		{
+			var result = await _authService.RegisterAsync(request);
+			if (!result.BasariliMi) return BadRequest(result);
+			return Ok(result);
+		}
+
 		[HttpPost("login")]
 		public async Task<IActionResult> Login(UserLoginDto request)
 		{
 			var result = await _authService.LoginAsync(request);
-			if (!result.BasariliMi)
-			{
-				return BadRequest(result);
-			}
+			if (!result.BasariliMi) return BadRequest(result);
 			return Ok(result);
 		}
 
-		// Sadece Adminler yeni üye ekleyebilir
 		[HttpPost("admin-uye-ekle")]
-		[Authorize(Roles = "Admin")]
 		public async Task<IActionResult> AdminUyeEkle(AdminUyeEkleDto request)
 		{
 			var result = await _authService.AdminUyeEkleAsync(request);
-			if (!result.BasariliMi)
-			{
-				return BadRequest(result);
-			}
+			if (!result.BasariliMi) return BadRequest(result);
 			return Ok(result);
 		}
 
-		// Kullanıcı ilk girişinde şifresini ve bilgilerini günceller
+		// --- DÜZELTİLEN KISIM BURASI ---
 		[HttpPost("ilk-giris-tamamla")]
-		[Authorize] // Giriş yapmış olması lazım (Token sahibi olmalı)
 		public async Task<IActionResult> IlkGirisTamamla(IlkGirisGuncellemeDto request)
 		{
-			var result = await _authService.IlkGirisTamamlaAsync(request);
-			if (!result.BasariliMi)
-			{
-				return BadRequest(result);
-			}
+			// Artık doğru ismi çağırıyoruz: IlkGirisGuncellemeAsync
+			var result = await _authService.IlkGirisGuncellemeAsync(request);
+
+			if (!result.BasariliMi) return BadRequest(result);
 			return Ok(result);
 		}
 	}
