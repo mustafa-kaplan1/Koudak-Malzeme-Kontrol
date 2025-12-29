@@ -12,13 +12,10 @@ namespace KoudakMalzeme.Shared.Entities
 		public string Telefon { get; set; }
 		public string? ProfilResmiYolu { get; set; }
 
-		// JWT ve Güvenlik
 		public byte[] PasswordHash { get; set; }
 		public byte[] PasswordSalt { get; set; }
 		public KullaniciRolu Rol { get; set; }
-
-		// Navigation Properties (İlişkiler)
-		// Kullanıcının aldığı emanetler
 		public ICollection<Emanet> AldigiEmanetler { get; set; }
+		public bool IlkGirisYapildiMi { get; set; } = false;
 	}
 }

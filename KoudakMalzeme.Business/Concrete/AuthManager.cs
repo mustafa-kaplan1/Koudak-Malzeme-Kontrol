@@ -27,32 +27,6 @@ namespace KoudakMalzeme.Business.Concrete
 			_configuration = configuration;
 		}
 
-		public async Task<ServiceResult<AuthResponseDto>> RegisterAsync(UserRegisterDto registerDto)
-		{
-			if (await UserExists(registerDto.Email))
-				return ServiceResult<AuthResponseDto>.Basarisiz("Bu e-posta adresi zaten kayıtlı.");
-
-			// Şifreleme İşlemi (Hashing)
-			CreatePasswordHash(registerDto.Password, out byte[] passwordHash, out byte[] passwordSalt);
-
-			var user = new Kullanici
-			{
-				OkulNo = registerDto.OkulNo,
-				Ad = registerDto.Ad,
-				Soyad = registerDto.Soyad,
-				Email = registerDto.Email,
-				Telefon = registerDto.Telefon,
-				PasswordHash = passwordHash,
-				PasswordSalt = passwordSalt,
-				Rol = KullaniciRolu.AdayUye // Varsayılan olarak Aday Üye başlar
-			};
-
-			_context.Kullanicilar.Add(user);
-			await _context.SaveChangesAsync();
-
-			return CreateToken(user);
-		}
-
 		public async Task<ServiceResult<AuthResponseDto>> LoginAsync(UserLoginDto loginDto)
 		{
 			var user = await _context.Kullanicilar.FirstOrDefaultAsync(x => x.Email == loginDto.Email);
@@ -62,7 +36,77 @@ namespace KoudakMalzeme.Business.Concrete
 			if (!VerifyPasswordHash(loginDto.Password, user.PasswordHash, user.PasswordSalt))
 				return ServiceResult<AuthResponseDto>.Basarisiz("Şifre hatalı.");
 
-			return CreateToken(user);
+			return ServiceResult<AuthResponseDto>.Basarili(new AuthResponseDto
+			{
+				Token = tokenString,
+				AdSoyad = $"{user.Ad} {user.Soyad}".Trim(),
+				Rol = user.Rol.ToString(),
+				IlkGirisYapildiMi = user.IlkGirisYapildiMi,
+				Expiration = tokenDescriptor.Expires.Value
+			}, "Giriş başarılı.");
+		}
+
+
+		// Yeni Metot: Admin Üye Ekler
+		public async Task<ServiceResult<string>> AdminUyeEkleAsync(AdminUyeEkleDto dto)
+		{
+			if (await UserExists(dto.Email))
+				return ServiceResult<string>.Basarisiz("Bu e-posta zaten kayıtlı.");
+
+			// 1. Rastgele Şifre Üret (Örn: 6 haneli sayı veya random string)
+			string geciciSifre = new Random().Next(100000, 999999).ToString();
+
+			// 2. Hashle
+			CreatePasswordHash(geciciSifre, out byte[] passwordHash, out byte[] passwordSalt);
+
+			var user = new Kullanici
+			{
+				OkulNo = dto.OkulNo,
+				Email = dto.Email,
+				Ad = dto.Ad ?? "",
+				Soyad = dto.Soyad ?? "",
+				Telefon = "",
+				PasswordHash = passwordHash,
+				PasswordSalt = passwordSalt,
+				Rol = KullaniciRolu.Uye, // Direkt üye olarak ekliyoruz
+				IlkGirisYapildiMi = false // <--- ÖNEMLİ: Zorunlu güncelleme için
+			};
+
+			_context.Kullanicilar.Add(user);
+			await _context.SaveChangesAsync();
+
+			// Admin'e bu şifreyi dönüyoruz ki kullanıcıya iletsin.
+			// İleride buraya "Mail Gönder" kodu da eklenebilir.
+			return ServiceResult<string>.Basarili(geciciSifre, "Kullanıcı oluşturuldu. Geçici Şifre: " + geciciSifre);
+		}
+
+
+		// Yeni Metot: Kullanıcı İlk Girişini Tamamlar
+		public async Task<ServiceResult<bool>> IlkGirisTamamlaAsync(IlkGirisGuncellemeDto dto)
+		{
+			var user = await _context.Kullanicilar.FindAsync(dto.KullaniciId);
+			if (user == null) return ServiceResult<bool>.Basarisiz("Kullanıcı bulunamadı.");
+
+			if (dto.YeniSifre != dto.YeniSifreTekrar)
+				return ServiceResult<bool>.Basarisiz("Şifreler uyuşmuyor.");
+
+			// Yeni Şifreyi Hashle
+			CreatePasswordHash(dto.YeniSifre, out byte[] passwordHash, out byte[] passwordSalt);
+
+			// Bilgileri Güncelle
+			user.Ad = dto.Ad;
+			user.Soyad = dto.Soyad;
+			user.Telefon = dto.Telefon;
+			user.PasswordHash = passwordHash;
+			user.PasswordSalt = passwordSalt;
+
+			// KİLİT NOKTA: Artık özgür
+			user.IlkGirisYapildiMi = true;
+
+			_context.Kullanicilar.Update(user);
+			await _context.SaveChangesAsync();
+
+			return ServiceResult<bool>.Basarili(true, "Hesap kurulumu tamamlandı.");
 		}
 
 		private async Task<bool> UserExists(string email)

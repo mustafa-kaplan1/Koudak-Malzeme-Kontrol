@@ -5,7 +5,8 @@ namespace KoudakMalzeme.Business.Abstract
 {
 	public interface IAuthService
 	{
-		Task<ServiceResult<AuthResponseDto>> RegisterAsync(UserRegisterDto registerDto);
 		Task<ServiceResult<AuthResponseDto>> LoginAsync(UserLoginDto loginDto);
+		Task<ServiceResult<string>> AdminUyeEkleAsync(AdminUyeEkleDto dto);
+		Task<ServiceResult<bool>> IlkGirisTamamlaAsync(IlkGirisGuncellemeDto dto);
 	}
 }
