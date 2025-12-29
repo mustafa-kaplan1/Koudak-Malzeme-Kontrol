@@ -51,5 +51,13 @@ namespace KoudakMalzeme.API.Controllers
 			var sonuc = await _emanetService.UyeEmanetleriniGetirAsync(uyeId);
 			return Ok(sonuc);
 		}
+
+		[HttpGet("{id}")]
+		public async Task<IActionResult> GetirById(int id)
+		{
+			var sonuc = await _emanetService.GetirByIdAsync(id);
+			if (sonuc.BasariliMi) return Ok(sonuc);
+			return BadRequest(sonuc);
+		}
 	}
 }

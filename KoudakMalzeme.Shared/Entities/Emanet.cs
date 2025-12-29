@@ -18,7 +18,7 @@ namespace KoudakMalzeme.Shared.Entities
 		public int? AlanPersonelId { get; set; }
 		public Kullanici? AlanPersonel { get; set; }
 
-		public DateTime? TeslimAlmaTarihi { get; set; } // Üyenin malzemeyi aldığı tarih
+		public DateTime TeslimAlmaTarihi { get; set; } = DateTime.Now;
 		public DateTime? IadeTarihi { get; set; }       // İşlemin tamamen kapandığı tarih
 		public DateTime? PlanlananIadeTarihi { get; set; } // Ne zaman getirecek?
 

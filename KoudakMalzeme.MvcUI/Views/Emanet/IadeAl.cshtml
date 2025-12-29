@@ -1,0 +1,76 @@
+@model KoudakMalzeme.MvcUI.Models.EmanetIadeViewModel
+@{
+	ViewData["Title"] = "İade Al";
+}
+
+<div class="container">
+	<div class="card shadow border-0 mb-4">
+		<div class="card-header bg-success text-white">
+			<h5 class="mb-0">Emanet Detayları (#@Model.EmanetId)</h5>
+		</div>
+		<div class="card-body">
+			<div class="row">
+				<div class="col-md-6">
+					<p><strong>Üye:</strong> @Model.Emanet.Uye?.Ad @Model.Emanet.Uye?.Soyad (@Model.Emanet.Uye?.OkulNo)
+					</p>
+					<p><strong>Veriliş Tarihi:</strong> @Model.Emanet.TeslimAlmaTarihi</p>
+				</div>
+				<div class="col-md-6">
+					<p><strong>Not:</strong> @Model.Emanet.MalzemeciNotu</p>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<form asp-action="IadeAl" method="post">
+		<input type="hidden" asp-for="EmanetId" />
+
+		<div class="card shadow border-0">
+			<div class="card-header bg-light">
+				<h6 class="mb-0">Malzeme Listesi ve İade Girişi</h6>
+			</div>
+			<div class="card-body p-0">
+				<table class="table table-striped mb-0">
+					<thead>
+						<tr>
+							<th>Malzeme</th>
+							<th>Toplam Verilen</th>
+							<th>Daha Önce İade Edilen</th>
+							<th>Kalan (Borç)</th>
+							<th style="width: 150px;">Şimdi İade Edilen</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var detay in Model.Emanet.EmanetDetaylari)
+						{
+							// Eğer bu malzeme tamamen iade edildiyse satırı gri yapalım
+							bool tamamlandi = detay.TamamlandiMi;
+							<tr class="@(tamamlandi ? "text-muted" : "")">
+								<td>@detay.Malzeme.Ad</td>
+								<td>@detay.AlinanAdet</td>
+								<td>@detay.IadeEdilenAdet</td>
+								<td class="fw-bold text-danger">@detay.KalanAdet</td>
+								<td>
+									@if (!tamamlandi)
+									{
+										<input type="number" name="IadeAdetleri[@detay.MalzemeId]"
+											class="form-control form-control-sm" min="0" max="@detay.KalanAdet"
+											placeholder="0" />
+									}
+									else
+									{
+										<span class="badge bg-success">Tamamlandı</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+			<div class="card-footer bg-white d-flex justify-content-end gap-2 p-3">
+				<a asp-action="Index" class="btn btn-secondary">İptal</a>
+				<button type="submit" class="btn btn-success">İadeyi Tamamla</button>
+			</div>
+		</div>
+	</form>
+</div>

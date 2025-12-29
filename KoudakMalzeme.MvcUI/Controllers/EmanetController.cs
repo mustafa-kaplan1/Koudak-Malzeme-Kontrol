@@ -76,5 +76,92 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			return Json(new { basarili = false, mesaj = "İşlem sırasında hata oluştu." });
 		}
+
+		// --- İADE İŞLEMLERİ ---
+
+		// 1. Aktif Emanetleri Listeleme Ekranı
+		[HttpGet]
+		public async Task<IActionResult> Index()
+		{
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await client.GetAsync("api/emanetler/aktif");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(options);
+				return View(result?.Veri ?? new List<Emanet>());
+			}
+
+			TempData["Hata"] = "Emanetler yüklenemedi.";
+			return View(new List<Emanet>());
+		}
+
+		// 2. İade Detay Sayfası (GET)
+		[HttpGet]
+		public async Task<IActionResult> IadeAl(int id)
+		{
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await client.GetAsync($"api/emanetler/{id}");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(options);
+
+				if (result != null && result.BasariliMi)
+				{
+					var model = new EmanetIadeViewModel
+					{
+						EmanetId = result.Veri.Id,
+						Emanet = result.Veri
+					};
+					return View(model);
+				}
+			}
+
+			TempData["Hata"] = "Kayıt bulunamadı.";
+			return RedirectToAction("Index");
+		}
+
+		// 3. İade Kaydetme (POST)
+		[HttpPost]
+		public async Task<IActionResult> IadeAl(EmanetIadeViewModel model)
+		{
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+			var dto = new EmanetIadeIstegiDto
+			{
+				EmanetId = model.EmanetId,
+				AlanPersonelId = int.Parse(userIdStr ?? "0"),
+				IadeEdilenler = model.IadeAdetleri
+					.Where(x => x.Value > 0) // Sadece 0'dan büyük girilenleri al
+					.Select(x => new EmanetKalemDto { MalzemeId = x.Key, Adet = x.Value })
+					.ToList()
+			};
+
+			var response = await client.PostAsJsonAsync("api/emanetler/iade-al", dto);
+
+			if (response.IsSuccessStatusCode)
+			{
+				TempData["Basari"] = "İade işlemi başarıyla kaydedildi.";
+				return RedirectToAction("Index");
+			}
+
+			TempData["Hata"] = "İade alınırken hata oluştu.";
+			return RedirectToAction("Index"); // Hata olursa listeye dön
+		}
 	}
+
+
 }
