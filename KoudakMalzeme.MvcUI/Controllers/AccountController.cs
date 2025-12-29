@@ -1,5 +1,4 @@
 using KoudakMalzeme.Shared.Dtos;
-using KoudakMalzeme.Shared.Types;
 using KoudakMalzeme.MvcUI.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;

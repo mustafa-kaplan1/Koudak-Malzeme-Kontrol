@@ -1,4 +1,4 @@
-namespace KoudakMalzeme.Shared.Types
+namespace KoudakMalzeme.Shared.Dtos
 {
 	public class ServiceResult<T>
 	{

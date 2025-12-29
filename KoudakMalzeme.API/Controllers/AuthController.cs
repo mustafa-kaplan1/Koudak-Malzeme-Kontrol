@@ -1,5 +1,5 @@
 using KoudakMalzeme.Business.Abstract;
-using KoudakMalzeme.Business.Types;
+using KoudakMalzeme.Shared.Dtos;
 using Microsoft.AspNetCore.Authorization; // Authorize için
 using Microsoft.AspNetCore.Mvc;
 

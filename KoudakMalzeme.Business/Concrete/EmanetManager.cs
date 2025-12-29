@@ -20,7 +20,7 @@ namespace KoudakMalzeme.Business.Concrete
 			_context = context;
 		}
 
-		public async Task<ServiceResult<int>> EmanetVerAsync(EmanetVermeIstegi istek)
+		public async Task<ServiceResult<int>> EmanetVerAsync(EmanetVermeIstegiDto istek)
 		{
 			// Transaction (İşlem bütünlüğü): Bir hata olursa her şeyi geri al.
 			using var transaction = await _context.Database.BeginTransactionAsync();
@@ -74,7 +74,7 @@ namespace KoudakMalzeme.Business.Concrete
 			}
 		}
 
-		public async Task<ServiceResult<bool>> IadeAlAsync(EmanetIadeIstegi istek)
+		public async Task<ServiceResult<bool>> IadeAlAsync(EmanetIadeIstegiDto istek)
 		{
 			using var transaction = await _context.Database.BeginTransactionAsync();
 			try

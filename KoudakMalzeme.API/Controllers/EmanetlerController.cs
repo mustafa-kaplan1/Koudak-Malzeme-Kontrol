@@ -1,5 +1,5 @@
 using KoudakMalzeme.Business.Abstract;
-using KoudakMalzeme.Business.Types;
+using KoudakMalzeme.Shared.Dtos;
 using Microsoft.AspNetCore.Mvc;
 
 namespace KoudakMalzeme.API.Controllers
@@ -16,7 +16,7 @@ namespace KoudakMalzeme.API.Controllers
 		}
 
 		[HttpPost("ver")]
-		public async Task<IActionResult> EmanetVer(EmanetVermeIstegi istek)
+		public async Task<IActionResult> EmanetVer(EmanetVermeIstegiDto istek)
 		{
 			var sonuc = await _emanetService.EmanetVerAsync(istek);
 			if (sonuc.BasariliMi) return Ok(sonuc);
@@ -24,7 +24,7 @@ namespace KoudakMalzeme.API.Controllers
 		}
 
 		[HttpPost("iade-al")]
-		public async Task<IActionResult> IadeAl(EmanetIadeIstegi istek)
+		public async Task<IActionResult> IadeAl(EmanetIadeIstegiDto istek)
 		{
 			var sonuc = await _emanetService.IadeAlAsync(istek);
 			if (sonuc.BasariliMi) return Ok(sonuc);

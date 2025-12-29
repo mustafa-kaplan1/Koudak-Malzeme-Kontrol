@@ -8,10 +8,10 @@ namespace KoudakMalzeme.Business.Abstract
 	public interface IEmanetService
 	{
 		// Emanet Verme İşlemi
-		Task<ServiceResult<int>> EmanetVerAsync(EmanetVermeIstegi istek);
+		Task<ServiceResult<int>> EmanetVerAsync(EmanetVermeIstegiDto istek);
 
 		// İade Alma İşlemi
-		Task<ServiceResult<bool>> IadeAlAsync(EmanetIadeIstegi istek);
+		Task<ServiceResult<bool>> IadeAlAsync(EmanetIadeIstegiDto istek);
 
 		// Sorgulamalar
 		Task<ServiceResult<List<Emanet>>> AktifEmanetleriGetirAsync();
