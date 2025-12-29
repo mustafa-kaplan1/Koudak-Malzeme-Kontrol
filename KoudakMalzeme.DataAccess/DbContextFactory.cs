@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+using System.IO;
 
 namespace KoudakMalzeme.DataAccess
 {
@@ -7,16 +9,23 @@ namespace KoudakMalzeme.DataAccess
 	{
 		public AppDbContext CreateDbContext(string[] args)
 		{
-			var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
+			var configuration = new ConfigurationBuilder()
+				.SetBasePath(Directory.GetCurrentDirectory())
+				.AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "../KoudakMalzeme.API/appsettings.json"), optional: true)
+				.Build();
 
-			// Buradaki Server ismini kendi MSSQL server isminle değiştirmelisin.
-			// Genelde "Server=.;" veya "Server=(localdb)\\mssqllocaldb;" veya "Server=DESKTOP-XXXX;" olur.
-			// Şimdilik nokta (.) koydum, localhost demektir.
-			var connectionString = "Server=.;Database=KoudakMalzemeDb;Trusted_Connection=True;TrustServerCertificate=True;";
+			var builder = new DbContextOptionsBuilder<AppDbContext>();
 
-			optionsBuilder.UseSqlServer(connectionString);
+			var connectionString = configuration.GetConnectionString("DefaultConnection");
 
-			return new AppDbContext(optionsBuilder.Options);
+			if (string.IsNullOrEmpty(connectionString))
+			{
+				throw new InvalidOperationException("Bağlantı adresi (Connection String) bulunamadı! Lütfen 'KoudakMalzeme.API/appsettings.json' dosyasını ve içindeki 'DefaultConnection' alanını kontrol edin.");
+			}
+
+			builder.UseSqlServer(connectionString);
+
+			return new AppDbContext(builder.Options);
 		}
 	}
 }
