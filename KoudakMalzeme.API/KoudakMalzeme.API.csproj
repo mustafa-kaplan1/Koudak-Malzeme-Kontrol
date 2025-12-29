@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\KoudakMalzeme.Business\KoudakMalzeme.Business.csproj" />
     <ProjectReference Include="..\KoudakMalzeme.Shared\KoudakMalzeme.Shared.csproj" />
+    <ProjectReference Include="..\KoudakMalzeme.DataAccess\KoudakMalzeme.DataAccess.csproj" />
   </ItemGroup>
 
 </Project>
