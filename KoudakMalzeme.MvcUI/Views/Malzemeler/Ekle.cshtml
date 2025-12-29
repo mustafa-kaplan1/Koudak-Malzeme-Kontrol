@@ -1,0 +1,46 @@
+@model KoudakMalzeme.Shared.Entities.Malzeme
+
+@{
+	ViewData["Title"] = "Malzeme Ekle";
+}
+
+<div class="row justify-content-center">
+	<div class="col-md-8">
+		<div class="card shadow">
+			<div class="card-header bg-success text-white">
+				<h4 class="mb-0">Yeni Malzeme Kaydı</h4>
+			</div>
+			<div class="card-body">
+				<form asp-action="Ekle" method="post">
+
+					<div class="mb-3">
+						<label asp-for="Ad" class="form-label fw-bold">Malzeme Adı</label>
+						<input asp-for="Ad" class="form-control" required />
+					</div>
+
+					<div class="mb-3">
+						<label asp-for="ToplamStok" class="form-label fw-bold">Toplam Adet (Stok)</label>
+						<input asp-for="ToplamStok" type="number" class="form-control" min="1" required />
+						<div class="form-text">Sisteme ilk girişte Güncel Stok, Toplam Stok ile aynı olacaktır.</div>
+					</div>
+
+					<div class="mb-3">
+						<label asp-for="Aciklama" class="form-label">Açıklama</label>
+						<textarea asp-for="Aciklama" class="form-control" rows="3"></textarea>
+					</div>
+
+					<div class="mb-3">
+						<label asp-for="GorselYolu" class="form-label">Görsel URL</label>
+						<input asp-for="GorselYolu" class="form-control" placeholder="https://..." />
+						<div class="form-text">Şimdilik resim linki yapıştırın. (İleride dosya yükleme eklenecek)</div>
+					</div>
+
+					<div class="d-flex justify-content-end gap-2">
+						<a asp-action="Index" class="btn btn-secondary">İptal</a>
+						<button type="submit" class="btn btn-success">Kaydet</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
