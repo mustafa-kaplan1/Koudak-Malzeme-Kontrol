@@ -36,27 +36,18 @@ namespace KoudakMalzeme.Business.Concrete
 			if (!VerifyPasswordHash(loginDto.Password, user.PasswordHash, user.PasswordSalt))
 				return ServiceResult<AuthResponseDto>.Basarisiz("Şifre hatalı.");
 
-			return ServiceResult<AuthResponseDto>.Basarili(new AuthResponseDto
-			{
-				Token = tokenString,
-				AdSoyad = $"{user.Ad} {user.Soyad}".Trim(),
-				Rol = user.Rol.ToString(),
-				IlkGirisYapildiMi = user.IlkGirisYapildiMi,
-				Expiration = tokenDescriptor.Expires.Value
-			}, "Giriş başarılı.");
+			// HATA BURADAYDI: Doğrudan CreateToken çağırıyoruz.
+			return CreateToken(user);
 		}
 
-
-		// Yeni Metot: Admin Üye Ekler
 		public async Task<ServiceResult<string>> AdminUyeEkleAsync(AdminUyeEkleDto dto)
 		{
 			if (await UserExists(dto.Email))
 				return ServiceResult<string>.Basarisiz("Bu e-posta zaten kayıtlı.");
 
-			// 1. Rastgele Şifre Üret (Örn: 6 haneli sayı veya random string)
+			// Rastgele Şifre (6 haneli)
 			string geciciSifre = new Random().Next(100000, 999999).ToString();
 
-			// 2. Hashle
 			CreatePasswordHash(geciciSifre, out byte[] passwordHash, out byte[] passwordSalt);
 
 			var user = new Kullanici
@@ -68,20 +59,16 @@ namespace KoudakMalzeme.Business.Concrete
 				Telefon = "",
 				PasswordHash = passwordHash,
 				PasswordSalt = passwordSalt,
-				Rol = KullaniciRolu.Uye, // Direkt üye olarak ekliyoruz
-				IlkGirisYapildiMi = false // <--- ÖNEMLİ: Zorunlu güncelleme için
+				Rol = KullaniciRolu.Uye,
+				IlkGirisYapildiMi = false // Zorunlu güncelleme bayrağı
 			};
 
 			_context.Kullanicilar.Add(user);
 			await _context.SaveChangesAsync();
 
-			// Admin'e bu şifreyi dönüyoruz ki kullanıcıya iletsin.
-			// İleride buraya "Mail Gönder" kodu da eklenebilir.
 			return ServiceResult<string>.Basarili(geciciSifre, "Kullanıcı oluşturuldu. Geçici Şifre: " + geciciSifre);
 		}
 
-
-		// Yeni Metot: Kullanıcı İlk Girişini Tamamlar
 		public async Task<ServiceResult<bool>> IlkGirisTamamlaAsync(IlkGirisGuncellemeDto dto)
 		{
 			var user = await _context.Kullanicilar.FindAsync(dto.KullaniciId);
@@ -90,18 +77,15 @@ namespace KoudakMalzeme.Business.Concrete
 			if (dto.YeniSifre != dto.YeniSifreTekrar)
 				return ServiceResult<bool>.Basarisiz("Şifreler uyuşmuyor.");
 
-			// Yeni Şifreyi Hashle
 			CreatePasswordHash(dto.YeniSifre, out byte[] passwordHash, out byte[] passwordSalt);
 
-			// Bilgileri Güncelle
 			user.Ad = dto.Ad;
 			user.Soyad = dto.Soyad;
 			user.Telefon = dto.Telefon;
 			user.PasswordHash = passwordHash;
 			user.PasswordSalt = passwordSalt;
 
-			// KİLİT NOKTA: Artık özgür
-			user.IlkGirisYapildiMi = true;
+			user.IlkGirisYapildiMi = true; // KİLİT NOKTA
 
 			_context.Kullanicilar.Update(user);
 			await _context.SaveChangesAsync();
@@ -114,7 +98,6 @@ namespace KoudakMalzeme.Business.Concrete
 			return await _context.Kullanicilar.AnyAsync(x => x.Email == email);
 		}
 
-		// Token Üretme Metodu
 		private ServiceResult<AuthResponseDto> CreateToken(Kullanici user)
 		{
 			var claims = new List<Claim>
@@ -122,10 +105,9 @@ namespace KoudakMalzeme.Business.Concrete
 				new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
 				new Claim(ClaimTypes.Email, user.Email),
 				new Claim(ClaimTypes.Name, $"{user.Ad} {user.Soyad}"),
-				new Claim(ClaimTypes.Role, user.Rol.ToString()) // Rol tabanlı yetkilendirme için şart
-            };
+				new Claim(ClaimTypes.Role, user.Rol.ToString())
+			};
 
-			// AppSettings'den gizli anahtarı alıyoruz
 			var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
 				_configuration.GetSection("AppSettings:Token").Value ?? "bu_varsayilan_cok_uzun_bir_gizli_anahtardir_en_az_64_karakter_olmali_ki_guvenli_olsun_123456789"));
 
@@ -134,7 +116,7 @@ namespace KoudakMalzeme.Business.Concrete
 			var tokenDescriptor = new SecurityTokenDescriptor
 			{
 				Subject = new ClaimsIdentity(claims),
-				Expires = DateTime.Now.AddDays(1), // Token 1 gün geçerli
+				Expires = DateTime.Now.AddDays(1),
 				SigningCredentials = creds
 			};
 
@@ -145,13 +127,13 @@ namespace KoudakMalzeme.Business.Concrete
 			return ServiceResult<AuthResponseDto>.Basarili(new AuthResponseDto
 			{
 				Token = tokenString,
-				AdSoyad = user.Ad + " " + user.Soyad,
+				AdSoyad = $"{user.Ad} {user.Soyad}".Trim(),
 				Rol = user.Rol.ToString(),
+				IlkGirisYapildiMi = user.IlkGirisYapildiMi, // EKLENDİ
 				Expiration = tokenDescriptor.Expires.Value
 			}, "Giriş başarılı.");
 		}
 
-		// Şifre Hashleme Yardımcıları
 		private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
 		{
 			using (var hmac = new HMACSHA512())
