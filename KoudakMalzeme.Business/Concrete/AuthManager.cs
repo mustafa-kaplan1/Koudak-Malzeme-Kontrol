@@ -1,5 +1,5 @@
 using KoudakMalzeme.Business.Abstract;
-using KoudakMalzeme.Business.Types;
+using KoudakMalzeme.Shared.Dtos;
 using KoudakMalzeme.DataAccess;
 using KoudakMalzeme.Shared.Entities;
 using KoudakMalzeme.Shared.Enums;

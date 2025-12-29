@@ -1,0 +1,42 @@
+@model KoudakMalzeme.MvcUI.Models.LoginViewModel
+@{
+	ViewData["Title"] = "Giriş Yap";
+}
+
+<div class="row justify-content-center mt-5">
+	<div class="col-md-5">
+		<div class="card shadow-lg border-0">
+			<div class="card-header bg-success text-white text-center py-4">
+				<h3 class="mb-0"><i class="fa-solid fa-mountain"></i> Koudak Giriş</h3>
+			</div>
+			<div class="card-body p-4">
+				<form asp-action="Login" method="post">
+					<div class="mb-3">
+						<label asp-for="Email" class="form-label">E-Posta</label>
+						<div class="input-group">
+							<span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+							<input asp-for="Email" class="form-control" placeholder="ornek@koudak.com" />
+						</div>
+						<span asp-validation-for="Email" class="text-danger small"></span>
+					</div>
+
+					<div class="mb-4">
+						<label asp-for="Password" class="form-label">Şifre</label>
+						<div class="input-group">
+							<span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+							<input asp-for="Password" class="form-control" placeholder="******" />
+						</div>
+						<span asp-validation-for="Password" class="text-danger small"></span>
+					</div>
+
+					<div class="d-grid">
+						<button type="submit" class="btn btn-success btn-lg">Giriş Yap</button>
+					</div>
+				</form>
+			</div>
+			<div class="card-footer text-center bg-light">
+				<small class="text-muted">Hesabınız yoksa kulüp başkanı ile iletişime geçiniz.</small>
+			</div>
+		</div>
+	</div>
+</div>

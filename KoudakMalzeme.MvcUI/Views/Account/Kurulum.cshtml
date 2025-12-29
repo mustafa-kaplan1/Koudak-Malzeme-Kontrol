@@ -1,0 +1,58 @@
+@model KoudakMalzeme.MvcUI.Models.IlkGirisViewModel
+@{
+	ViewData["Title"] = "Hesap Kurulumu";
+}
+
+<div class="container mt-4">
+	<div class="alert alert-warning border-warning shadow-sm">
+		<h4 class="alert-heading"><i class="fa-solid fa-triangle-exclamation"></i> İlk Giriş Tespiti!</h4>
+		<p>Sisteme ilk kez giriş yapıyorsunuz. Güvenliğiniz için bilgilerinizi güncellemeli ve kendi şifrenizi
+			belirlemelisiniz.</p>
+	</div>
+
+	<div class="card shadow border-0">
+		<div class="card-body p-4">
+			<h4 class="card-title text-success mb-4">Profil Bilgileri & Şifre Değişikliği</h4>
+			<form asp-action="Kurulum" method="post">
+
+				<div class="row">
+					<div class="col-md-6 mb-3">
+						<label asp-for="Ad" class="form-label">Adınız</label>
+						<input asp-for="Ad" class="form-control" />
+						<span asp-validation-for="Ad" class="text-danger"></span>
+					</div>
+					<div class="col-md-6 mb-3">
+						<label asp-for="Soyad" class="form-label">Soyadınız</label>
+						<input asp-for="Soyad" class="form-control" />
+						<span asp-validation-for="Soyad" class="text-danger"></span>
+					</div>
+				</div>
+
+				<div class="mb-3">
+					<label asp-for="Telefon" class="form-label">Telefon Numaranız</label>
+					<input asp-for="Telefon" class="form-control" placeholder="5XX ..." />
+					<span asp-validation-for="Telefon" class="text-danger"></span>
+				</div>
+
+				<hr class="my-4" />
+
+				<div class="row">
+					<div class="col-md-6 mb-3">
+						<label asp-for="YeniSifre" class="form-label">Yeni Şifre</label>
+						<input asp-for="YeniSifre" class="form-control" />
+						<span asp-validation-for="YeniSifre" class="text-danger"></span>
+					</div>
+					<div class="col-md-6 mb-3">
+						<label asp-for="YeniSifreTekrar" class="form-label">Yeni Şifre (Tekrar)</label>
+						<input asp-for="YeniSifreTekrar" class="form-control" />
+						<span asp-validation-for="YeniSifreTekrar" class="text-danger"></span>
+					</div>
+				</div>
+
+				<div class="d-flex justify-content-end">
+					<button type="submit" class="btn btn-success px-5">Kaydet ve Giriş Yap</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>

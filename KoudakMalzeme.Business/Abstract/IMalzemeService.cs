@@ -1,4 +1,4 @@
-using KoudakMalzeme.Business.Types;
+using KoudakMalzeme.Shared.Dtos;
 using KoudakMalzeme.Shared.Entities;
 using System.Collections.Generic;
 using System.Threading.Tasks;

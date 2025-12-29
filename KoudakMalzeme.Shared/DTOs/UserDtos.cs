@@ -1,4 +1,6 @@
-namespace KoudakMalzeme.Business.Types
+using System;
+
+namespace KoudakMalzeme.Shared.Dtos
 {
 	public class UserLoginDto
 	{
@@ -16,7 +18,6 @@ namespace KoudakMalzeme.Business.Types
 		public string Password { get; set; } = string.Empty;
 	}
 
-	// Token bilgisini dönmek için
 	public class AuthResponseDto
 	{
 		public string Token { get; set; } = string.Empty;
@@ -26,16 +27,14 @@ namespace KoudakMalzeme.Business.Types
 		public DateTime Expiration { get; set; }
 	}
 
-	// Adminin hızlıca üye eklemesi için
 	public class AdminUyeEkleDto
 	{
 		public string OkulNo { get; set; } = string.Empty;
 		public string Email { get; set; } = string.Empty;
-		public string? Ad { get; set; } // Opsiyonel (Admin bilmeyebilir)
-		public string? Soyad { get; set; } // Opsiyonel
+		public string? Ad { get; set; }
+		public string? Soyad { get; set; }
 	}
 
-	// Kullanıcının ilk girişte dolduracağı form
 	public class IlkGirisGuncellemeDto
 	{
 		public int KullaniciId { get; set; }

@@ -1,4 +1,4 @@
-using KoudakMalzeme.Business.Types;
+using KoudakMalzeme.Shared.Dtos;
 using System.Threading.Tasks;
 
 namespace KoudakMalzeme.Business.Abstract

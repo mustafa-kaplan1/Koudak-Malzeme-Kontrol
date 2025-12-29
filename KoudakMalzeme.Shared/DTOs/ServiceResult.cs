@@ -1,4 +1,4 @@
-namespace KoudakMalzeme.Business.Types
+namespace KoudakMalzeme.Shared.Types
 {
 	public class ServiceResult<T>
 	{
@@ -6,7 +6,6 @@ namespace KoudakMalzeme.Business.Types
 		public string? Mesaj { get; set; }
 		public T? Veri { get; set; }
 
-		// Başarılı sonucu kolayca oluşturmak için
 		public static ServiceResult<T> Basarili(T veri, string mesaj = "İşlem başarılı")
 		{
 			return new ServiceResult<T>
@@ -17,7 +16,6 @@ namespace KoudakMalzeme.Business.Types
 			};
 		}
 
-		// Başarısız sonucu kolayca oluşturmak için
 		public static ServiceResult<T> Basarisiz(string hataMesaji)
 		{
 			return new ServiceResult<T>
