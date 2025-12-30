@@ -14,6 +14,6 @@ namespace KoudakMalzeme.Shared.Entities
 		// Şu an odada rafta duran miktar (Örn: 5 tane emanetteyse burası 15 olur)
 		public int GuncelStok { get; set; }
 
-		public ICollection<EmanetDetay> EmanetGecmisi { get; set; }
+		public ICollection<EmanetDetay>? EmanetGecmisi { get; set; }
 	}
 }

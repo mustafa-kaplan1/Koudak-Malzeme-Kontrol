@@ -34,7 +34,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 	});
 
 // 4. Controller
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+	// İç içe veri çekerken (Malzeme->Emanet->Uye) döngü hatasını engeller
+	options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
 
 // 5. Swagger Ayarları (Swagger'da 'Authorize' butonu çıksın diye) --- YENİ ---
 builder.Services.AddEndpointsApiExplorer();

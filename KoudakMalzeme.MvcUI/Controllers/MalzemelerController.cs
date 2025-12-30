@@ -70,8 +70,12 @@ namespace KoudakMalzeme.MvcUI.Controllers
 				TempData["Basari"] = "Malzeme başarıyla eklendi.";
 				return RedirectToAction("Index");
 			}
-
-			TempData["Hata"] = "Ekleme başarısız oldu.";
+			else
+			{
+				// API'den dönen gerçek hatayı okuyup ekrana basalım
+				var hataMesaji = await response.Content.ReadAsStringAsync();
+				TempData["Hata"] = $"Ekleme başarısız: {hataMesaji}";
+			}
 			return View(malzeme);
 		}
 

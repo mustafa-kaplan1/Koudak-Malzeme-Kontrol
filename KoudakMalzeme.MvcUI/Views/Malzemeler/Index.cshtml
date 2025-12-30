@@ -1,66 +1,156 @@
-@model List<KoudakMalzeme.Shared.Entities.Malzeme>
+@using KoudakMalzeme.Shared.Entities
+@using KoudakMalzeme.Shared.Enums
+@model List<Malzeme>
 
 @{
 	ViewData["Title"] = "Malzeme Listesi";
-	// Kullanıcının rolünü kontrol et (Admin veya Malzemeci mi?)
 	bool yetkili = User.IsInRole("Admin") || User.IsInRole("Malzemeci");
 	bool admin = User.IsInRole("Admin");
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-	<h2 class="text-success"><i class="fa-solid fa-layer-group"></i> Malzeme Stoğu</h2>
+	<h2 class="text-success"><i class="fa-solid fa-list-check"></i> Malzeme Listesi</h2>
 	@if (yetkili)
 	{
-		<a asp-action="Ekle" class="btn btn-success"><i class="fa-solid fa-plus"></i> Yeni Malzeme Ekle</a>
+		<a asp-action="Ekle" class="btn btn-success"><i class="fa-solid fa-plus"></i> Yeni Malzeme</a>
 	}
 </div>
 
-<div class="row">
-	@foreach (var item in Model)
-	{
-		<div class="col-md-4 col-lg-3 mb-4">
-			<div class="card h-100 border-0 shadow-sm">
-				<img src="@(string.IsNullOrEmpty(item.GorselYolu) ? "https://via.placeholder.com/300x200?text=Koudak" : item.GorselYolu)"
-					class="card-img-top" alt="@item.Ad" style="height: 200px; object-fit: cover;">
-
-				<div class="card-body">
-					<h5 class="card-title fw-bold text-dark">@item.Ad</h5>
-					<p class="card-text text-muted small">@item.Aciklama</p>
-
-					<div class="d-flex justify-content-between mt-3">
-						<span class="badge bg-secondary p-2">Top: @item.ToplamStok</span>
-						<span class="badge @(item.GuncelStok > 0 ? "bg-success" : "bg-danger") p-2">
-							Raf: @item.GuncelStok
-						</span>
-					</div>
-				</div>
-
-				@if (yetkili)
-				{
-					<div class="card-footer bg-white border-top-0 d-flex justify-content-between">
-						<a asp-action="Duzenle" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">
-							<i class="fa-solid fa-pen"></i> Düzenle
-						</a>
-
-						@if (admin)
+<div class="card shadow-sm">
+	<div class="card-body p-0">
+		<div class="table-responsive">
+			<table class="table table-hover table-striped align-middle mb-0">
+				<thead class="bg-light">
+					<tr>
+						<th style="width: 20%;">Malzeme Adı</th>
+						<th style="width: 30%;">Açıklama</th>
+						<th style="width: 15%;" class="text-center">Adet (Mevcut)</th>
+						<th style="width: 20%;">Emanet Alanlar</th>
+						@if (yetkili)
 						{
-							<form asp-action="Sil" asp-route-id="@item.Id" method="post"
-								onsubmit="return confirm('Bu malzemeyi silmek istediğine emin misin?');">
-								<button type="submit" class="btn btn-sm btn-outline-danger">
-									<i class="fa-solid fa-trash"></i>
-								</button>
-							</form>
+							<th style="width: 15%;" class="text-end">İşlemler</th>
 						}
-					</div>
-				}
-			</div>
-		</div>
-	}
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var item in Model)
+					{
+						// Sadece aktif emanetleri (geri gelmemiş ve iptal olmamış) bulalım
+						var aktifEmanetler = item.EmanetGecmisi?
+						.Where(x => !x.TamamlandiMi &&
+						x.Emanet.Durum != EmanetDurumu.IptalEdildi &&
+						x.Emanet.Durum != EmanetDurumu.Tamamlandi)
+						.Select(x => new
+						{
+							AdSoyad = x.Emanet.Uye.Ad + " " + x.Emanet.Uye.Soyad,
+							Adet = x.AlinanAdet - x.IadeEdilenAdet, // Kalan adet
+							Tarih = x.Emanet.TeslimAlmaTarihi
+						})
+						.ToList();
 
-	@if (Model.Count == 0)
-	{
-		<div class="col-12 text-center py-5">
-			<p class="text-muted lead">Henüz kayıtlı malzeme yok.</p>
+						<tr>
+							<td class="fw-bold text-success">@item.Ad</td>
+							<td class="text-muted small">@item.Aciklama</td>
+
+							<td class="text-center">
+								<span class="badge bg-secondary fs-6">
+									@item.ToplamStok <span class="text-warning">(@item.GuncelStok)</span>
+								</span>
+							</td>
+
+							<td>
+								@if (aktifEmanetler != null && aktifEmanetler.Any())
+								{
+									<ul class="list-unstyled mb-0 small">
+										@foreach (var emanet in aktifEmanetler.Take(2))
+										{
+											<li><i class="fa-solid fa-user text-primary"></i> @emanet.AdSoyad <span
+													class="text-muted">(@emanet.Adet ad.)</span></li>
+										}
+
+										@if (aktifEmanetler.Count > 2)
+										{
+											<li>
+												<a href="#" class="text-decoration-none fw-bold" data-bs-toggle="modal"
+													data-bs-target="#modalDetay_@item.Id">
+													... ve @(aktifEmanetler.Count - 2) kişi daha
+												</a>
+											</li>
+										}
+									</ul>
+
+									<div class="modal fade" id="modalDetay_@item.Id" tabindex="-1" aria-hidden="true">
+										<div class="modal-dialog">
+											<div class="modal-content">
+												<div class="modal-header">
+													<h5 class="modal-title">@item.Ad - Emanet Listesi</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"
+														aria-label="Kapat"></button>
+												</div>
+												<div class="modal-body">
+													<table class="table table-sm">
+														<thead>
+															<tr>
+																<th>Üye</th>
+																<th>Adet</th>
+																<th>Tarih</th>
+															</tr>
+														</thead>
+														<tbody>
+															@foreach (var detay in aktifEmanetler)
+															{
+																<tr>
+																	<td>@detay.AdSoyad</td>
+																	<td>@detay.Adet</td>
+																	<td>@detay.Tarih.ToShortDateString()</td>
+																</tr>
+															}
+														</tbody>
+													</table>
+												</div>
+											</div>
+										</div>
+									</div>
+								}
+								else
+								{
+									<span class="text-muted small">-</span>
+								}
+							</td>
+
+							@if (yetkili)
+							{
+								<td class="text-end">
+									<div class="btn-group" role="group">
+										<a asp-action="Duzenle" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
+											title="Düzenle">
+											<i class="fa-solid fa-pen"></i>
+										</a>
+										@if (admin)
+										{
+											<form asp-action="Sil" asp-route-id="@item.Id" method="post" class="d-inline"
+												onsubmit="return confirm('Silmek istediğine emin misin?');">
+												<button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
+													<i class="fa-solid fa-trash"></i>
+												</button>
+											</form>
+										}
+									</div>
+								</td>
+							}
+						</tr>
+					}
+
+					@if (Model.Count == 0)
+					{
+						<tr>
+							<td colspan="5" class="text-center py-4 text-muted">
+								Henüz malzeme kaydı yok.
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
 		</div>
-	}
+	</div>
 </div>

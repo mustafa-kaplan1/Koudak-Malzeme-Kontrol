@@ -20,7 +20,13 @@ namespace KoudakMalzeme.Business.Concrete
 
 		public async Task<ServiceResult<List<Malzeme>>> TumMalzemeleriGetirAsync()
 		{
-			var liste = await _context.Malzemeler.ToListAsync();
+			// Include ile Emanet geçmişini, oradan Emanet'e, oradan da Üye'ye ulaşıyoruz.
+			var liste = await _context.Malzemeler
+				.Include(m => m.EmanetGecmisi)
+					.ThenInclude(ed => ed.Emanet)
+					.ThenInclude(e => e.Uye)
+				.ToListAsync();
+
 			return ServiceResult<List<Malzeme>>.Basarili(liste);
 		}
 
