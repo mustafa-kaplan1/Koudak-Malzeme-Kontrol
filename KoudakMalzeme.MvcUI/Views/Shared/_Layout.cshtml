@@ -106,25 +106,11 @@
 								</li>
 							}
 
-							// --- PROFIL MENÜSÜ (İKONLU) ---
-							<li class="nav-item dropdown border-start ps-3 ms-2">
-								<a class="nav-link dropdown-toggle text-white" href="#" role="button"
-									data-bs-toggle="dropdown">
+							<li class="nav-item border-start ps-3 ms-2">
+								<a class="nav-link text-white" asp-controller="Kullanici" asp-action="Profil"
+									asp-route-id="@userId">
 									<i class="fa-solid fa-circle-user fa-lg text-success me-1"></i> @userName
 								</a>
-								<ul class="dropdown-menu dropdown-menu-end shadow">
-									<li>
-										<a class="nav-link" asp-controller="Kullanici" asp-action="Profil">Profilim</a>
-									</li>
-									<li>
-										<hr class="dropdown-divider">
-									</li>
-									<li>
-										<a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout">
-											Çıkış Yap
-										</a>
-									</li>
-								</ul>
 							</li>
 						}
 						else

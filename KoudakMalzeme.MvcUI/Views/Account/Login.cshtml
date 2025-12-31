@@ -1,42 +1,84 @@
 @model KoudakMalzeme.MvcUI.Models.LoginViewModel
 @{
+	Layout = null; // Layout iptal
 	ViewData["Title"] = "Giriş Yap";
 }
 
-<div class="row justify-content-center mt-5">
-	<div class="col-md-5">
-		<div class="card shadow-lg border-0">
-			<div class="card-header bg-success text-white text-center py-4">
-				<h3 class="mb-0"><i class="fa-solid fa-mountain"></i> Koudak Giriş</h3>
-			</div>
-			<div class="card-body p-4">
-				<form asp-action="Login" method="post">
-					<div class="mb-3">
-						<label asp-for="Email" class="form-label">E-Posta</label>
-						<div class="input-group">
-							<span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
-							<input asp-for="Email" class="form-control" placeholder="ornek@koudak.com" />
-						</div>
-						<span asp-validation-for="Email" class="text-danger small"></span>
-					</div>
+<!DOCTYPE html>
+<html lang="tr">
 
-					<div class="mb-4">
-						<label asp-for="Password" class="form-label">Şifre</label>
-						<div class="input-group">
-							<span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
-							<input asp-for="Password" class="form-control" placeholder="******" />
-						</div>
-						<span asp-validation-for="Password" class="text-danger small"></span>
-					</div>
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@ViewData["Title"] - Koudak Malzeme</title>
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
 
-					<div class="d-grid">
-						<button type="submit" class="btn btn-success btn-lg">Giriş Yap</button>
+<body class="bg-light">
+
+	<div class="container">
+		<div class="row justify-content-center mt-3">
+			<div class="col-md-5">
+				@if (TempData["Hata"] != null)
+				{
+					<div class="alert alert-danger alert-dismissible fade show" role="alert">
+						@TempData["Hata"]
+						<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 					</div>
-				</form>
+				}
+				@if (TempData["Basari"] != null)
+				{
+					<div class="alert alert-success alert-dismissible fade show" role="alert">
+						@TempData["Basari"]
+						<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+					</div>
+				}
 			</div>
-			<div class="card-footer text-center bg-light">
-				<small class="text-muted">Hesabınız yoksa kulüp başkanı ile iletişime geçiniz.</small>
+		</div>
+
+		<div class="row justify-content-center mt-4">
+			<div class="col-md-5">
+				<div class="card shadow-lg border-0">
+					<div class="card-header bg-success text-white text-center py-4">
+						<h3 class="mb-0"><i class="fa-solid fa-mountain"></i> Koudak Giriş</h3>
+					</div>
+					<div class="card-body p-4">
+						<form asp-action="Login" method="post">
+							<div class="mb-3">
+								<label asp-for="Email" class="form-label">E-Posta</label>
+								<div class="input-group">
+									<span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+									<input asp-for="Email" class="form-control" placeholder="ornek@koudak.com" />
+								</div>
+								<span asp-validation-for="Email" class="text-danger small"></span>
+							</div>
+
+							<div class="mb-4">
+								<label asp-for="Password" class="form-label">Şifre</label>
+								<div class="input-group">
+									<span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+									<input asp-for="Password" class="form-control" placeholder="******" />
+								</div>
+								<span asp-validation-for="Password" class="text-danger small"></span>
+							</div>
+
+							<div class="d-grid">
+								<button type="submit" class="btn btn-success btn-lg">Giriş Yap</button>
+							</div>
+						</form>
+					</div>
+					<div class="card-footer text-center bg-light">
+						<small class="text-muted">Hesabınız yoksa kulüp başkanı ile iletişime geçiniz.</small>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
-</div>
+
+	<script src="~/lib/jquery/dist/jquery.min.js"></script>
+	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

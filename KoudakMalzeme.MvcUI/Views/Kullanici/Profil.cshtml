@@ -31,14 +31,19 @@
 							<i class="fa-solid fa-plus"></i> Yeni Emanet İste
 						</a>
 						<button class="btn btn-outline-secondary" disabled>Bilgilerimi Güncelle</button>
+
+						<hr class="my-2">
+						<a asp-controller="Account" asp-action="Logout" class="btn btn-danger">
+							<i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+						</a>
 					</div>
 				}
 			</div>
 		</div>
 	</div>
 
+	@*Sağ Taraf *@
 	<div class="col-md-8">
-
 		<div class="card shadow border-0 mb-4">
 			<div class="card-header bg-warning text-dark border-bottom-0 pt-3 pb-2">
 				<h5 class="fw-bold mb-0"><i class="fa-solid fa-hand-holding-box me-2"></i> Zimmetindeki Malzemeler</h5>

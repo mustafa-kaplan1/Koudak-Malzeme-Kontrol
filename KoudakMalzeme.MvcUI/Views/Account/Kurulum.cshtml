@@ -1,58 +1,88 @@
 @model KoudakMalzeme.MvcUI.Models.IlkGirisViewModel
 @{
+	Layout = null; // Layout iptal
 	ViewData["Title"] = "Hesap Kurulumu";
 }
 
-<div class="container mt-4">
-	<div class="alert alert-warning border-warning shadow-sm">
-		<h4 class="alert-heading"><i class="fa-solid fa-triangle-exclamation"></i> İlk Giriş Tespiti!</h4>
-		<p>Sisteme ilk kez giriş yapıyorsunuz. Güvenliğiniz için bilgilerinizi güncellemeli ve kendi şifrenizi
-			belirlemelisiniz.</p>
-	</div>
+<!DOCTYPE html>
+<html lang="tr">
 
-	<div class="card shadow border-0">
-		<div class="card-body p-4">
-			<h4 class="card-title text-success mb-4">Profil Bilgileri & Şifre Değişikliği</h4>
-			<form asp-action="Kurulum" method="post">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@ViewData["Title"] - Koudak Malzeme</title>
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
 
-				<div class="row">
-					<div class="col-md-6 mb-3">
-						<label asp-for="Ad" class="form-label">Adınız</label>
-						<input asp-for="Ad" class="form-control" />
-						<span asp-validation-for="Ad" class="text-danger"></span>
+<body class="bg-light">
+
+	<div class="container mt-5">
+
+		@if (TempData["Hata"] != null)
+		{
+			<div class="alert alert-danger alert-dismissible fade show" role="alert">
+				@TempData["Hata"]
+				<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+			</div>
+		}
+
+		<div class="alert alert-warning border-warning shadow-sm">
+			<h4 class="alert-heading"><i class="fa-solid fa-triangle-exclamation"></i> İlk Giriş Tespiti!</h4>
+			<p>Sisteme ilk kez giriş yapıyorsunuz. Güvenliğiniz için bilgilerinizi güncellemeli ve kendi şifrenizi
+				belirlemelisiniz.</p>
+		</div>
+
+		<div class="card shadow border-0">
+			<div class="card-body p-4">
+				<h4 class="card-title text-success mb-4">Profil Bilgileri & Şifre Değişikliği</h4>
+				<form asp-action="Kurulum" method="post">
+
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label asp-for="Ad" class="form-label">Adınız</label>
+							<input asp-for="Ad" class="form-control" />
+							<span asp-validation-for="Ad" class="text-danger"></span>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label asp-for="Soyad" class="form-label">Soyadınız</label>
+							<input asp-for="Soyad" class="form-control" />
+							<span asp-validation-for="Soyad" class="text-danger"></span>
+						</div>
 					</div>
-					<div class="col-md-6 mb-3">
-						<label asp-for="Soyad" class="form-label">Soyadınız</label>
-						<input asp-for="Soyad" class="form-control" />
-						<span asp-validation-for="Soyad" class="text-danger"></span>
+
+					<div class="mb-3">
+						<label asp-for="Telefon" class="form-label">Telefon Numaranız</label>
+						<input asp-for="Telefon" class="form-control" placeholder="5XX ..." />
+						<span asp-validation-for="Telefon" class="text-danger"></span>
 					</div>
-				</div>
 
-				<div class="mb-3">
-					<label asp-for="Telefon" class="form-label">Telefon Numaranız</label>
-					<input asp-for="Telefon" class="form-control" placeholder="5XX ..." />
-					<span asp-validation-for="Telefon" class="text-danger"></span>
-				</div>
+					<hr class="my-4" />
 
-				<hr class="my-4" />
-
-				<div class="row">
-					<div class="col-md-6 mb-3">
-						<label asp-for="YeniSifre" class="form-label">Yeni Şifre</label>
-						<input asp-for="YeniSifre" class="form-control" />
-						<span asp-validation-for="YeniSifre" class="text-danger"></span>
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label asp-for="YeniSifre" class="form-label">Yeni Şifre</label>
+							<input asp-for="YeniSifre" class="form-control" />
+							<span asp-validation-for="YeniSifre" class="text-danger"></span>
+						</div>
+						<div class="col-md-6 mb-3">
+							<label asp-for="YeniSifreTekrar" class="form-label">Yeni Şifre (Tekrar)</label>
+							<input asp-for="YeniSifreTekrar" class="form-control" />
+							<span asp-validation-for="YeniSifreTekrar" class="text-danger"></span>
+						</div>
 					</div>
-					<div class="col-md-6 mb-3">
-						<label asp-for="YeniSifreTekrar" class="form-label">Yeni Şifre (Tekrar)</label>
-						<input asp-for="YeniSifreTekrar" class="form-control" />
-						<span asp-validation-for="YeniSifreTekrar" class="text-danger"></span>
-					</div>
-				</div>
 
-				<div class="d-flex justify-content-end">
-					<button type="submit" class="btn btn-success px-5">Kaydet ve Giriş Yap</button>
-				</div>
-			</form>
+					<div class="d-flex justify-content-end">
+						<button type="submit" class="btn btn-success px-5">Kaydet ve Giriş Yap</button>
+					</div>
+				</form>
+			</div>
 		</div>
 	</div>
-</div>
+
+	<script src="~/lib/jquery/dist/jquery.min.js"></script>
+	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

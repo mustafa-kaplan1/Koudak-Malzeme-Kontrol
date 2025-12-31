@@ -20,7 +20,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 		[HttpGet]
 		public IActionResult Login()
 		{
-			// Zaten giriş yapmışsa anasayfaya at
 			if (User.Identity!.IsAuthenticated) return RedirectToAction("Index", "Home");
 			return View();
 		}
@@ -47,24 +46,26 @@ namespace KoudakMalzeme.MvcUI.Controllers
 					var veri = result.Veri;
 
 					// --- COOKIE OLUŞTURMA (Oturum Açma) ---
+					// Token içindeki ID'yi oku
+					var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+					var jwt = handler.ReadJwtToken(veri.Token);
+					var userId = jwt.Claims.FirstOrDefault(c => c.Type == "nameid" || c.Type == ClaimTypes.NameIdentifier)?.Value;
+
 					var claims = new List<Claim>
 					{
-                        // Token'ı sakla, API çağrılarında lazım olacak
-                        new Claim("Token", veri.Token),
+						new Claim("Token", veri.Token),
 						new Claim(ClaimTypes.Name, veri.AdSoyad),
 						new Claim(ClaimTypes.Role, veri.Rol),
-                        // ID'yi token içinden veya API dönüşünden almamız lazım. 
-                        // Token string olduğu için içini çözümlemek yerine API'den dönen ID'yi kullanmak daha kolay olurdu
-                        // ama şimdilik Token'ı kullanacağız.
+						new Claim("IlkGirisYapildiMi", veri.IlkGirisYapildiMi.ToString()),
                         
-                        // Kilit Claim: Kurulum Durumu
-                        new Claim("IlkGirisYapildiMi", veri.IlkGirisYapildiMi.ToString())
+                        // 2. ID'yi buraya ekliyoruz ki Layout ve diğer sayfalar okuyabilsin
+                        new Claim(ClaimTypes.NameIdentifier, userId ?? "0")
 					};
 
 					var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 					var authProperties = new AuthenticationProperties
 					{
-						IsPersistent = true, // Beni hatırla
+						IsPersistent = true,
 						ExpiresUtc = veri.Expiration
 					};
 
