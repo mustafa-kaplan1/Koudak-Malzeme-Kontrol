@@ -1,84 +1,177 @@
 ﻿<!DOCTYPE html>
 <html lang="tr">
+
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Koudak Dağcılık</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@ViewData["Title"] - Koudak Malzeme</title>
+
+	<link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+	<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+	<style>
+		.navbar-brand {
+			line-height: 1;
+		}
+
+		.navbar-brand small {
+			font-size: 10px;
+			letter-spacing: 2px;
+			display: block;
+			margin-top: 2px;
+		}
+	</style>
 </head>
-<body class="d-flex flex-column min-vh-100">
-    
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-dark">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <i class="fa-solid fa-mountain"></i> Koudak Malzeme
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                
-                <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">Anasayfa</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Malzemeler" asp-action="Index">Malzemeler</a>
-                        </li>
-                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Emanet" asp-action="Index">Emanet İşlemleri</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" asp-controller="Kullanici" asp-action="Index">Üyeler</a>
-                        </li>
-                    </ul>
 
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item">
-                            <a class="btn btn-outline-light btn-sm ms-2" asp-controller="Account" asp-action="Login">
-                                <i class="fa-solid fa-right-to-bracket"></i> Giriş Yap
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
+<body>
+	<header>
+		<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom box-shadow mb-3 py-2">
+			<div class="container">
 
-    <div class="container my-4">
-        <main role="main" class="pb-3">
-            @if (TempData["Hata"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    @TempData["Hata"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (TempData["Basari"] != null)
-            {
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    @TempData["Basari"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
+				<a class="navbar-brand text-success fw-bold text-center" asp-controller="Home" asp-action="Index">
+					<div><i class="fa-solid fa-hand me-1"></i> KOÜDAK</div>
+					<small class="text-white-50">MALZEME</small>
+				</a>
 
-            @RenderBody()
-        </main>
-    </div>
+				<button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+					data-bs-target=".navbar-collapse">
+					<span class="navbar-toggler-icon"></span>
+				</button>
 
-    <footer class="footer py-3 text-center">
-        <div class="container">
-            &copy; 2025 - Koudak Dağcılık Kulübü - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-white-50">Gizlilik</a>
-        </div>
-    </footer>
+				<div class="navbar-collapse collapse d-lg-inline-flex justify-content-between">
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
+					<ul class="navbar-nav flex-grow-1">
+						@if (User.Identity.IsAuthenticated)
+						{
+							<li class="nav-item">
+								<a class="nav-link text-white" asp-controller="Malzemeler" asp-action="Index">
+									Malzemeler
+								</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-white" asp-controller="Kullanici" asp-action="Index">
+									Üyeler
+								</a>
+							</li>
+							<li class="nav-item">
+								<a class="nav-link text-white" asp-controller="Emanet" asp-action="Index">
+									Emanet Kaydı
+								</a>
+							</li>
+						}
+					</ul>
+
+					<ul class="navbar-nav ms-auto align-items-center">
+						@if (User.Identity.IsAuthenticated)
+						{
+							var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+							var userName = User.Identity.Name;
+
+							// --- MALZEMECİ VE ADMIN LINKLERİ (STANDART GÖRÜNÜM) ---
+							@if (User.IsInRole("Admin") || User.IsInRole("Malzemeci"))
+							{
+								<li class="nav-item">
+									<a class="nav-link text-white" asp-controller="Emanet" asp-action="Ver">
+										Emanet Ver
+									</a>
+								</li>
+								<li class="nav-item">
+									<a class="nav-link text-white" href="#">
+										Log Kaydı
+									</a>
+								</li>
+							}
+
+							// --- ADMIN AYARLARI ---
+							@if (User.IsInRole("Admin"))
+							{
+								<li class="nav-item dropdown">
+									<a class="nav-link dropdown-toggle text-danger fw-bold" href="#" role="button"
+										data-bs-toggle="dropdown">
+										Admin Ayarları
+									</a>
+									<ul class="dropdown-menu dropdown-menu-end shadow">
+										<li>
+											<a class="dropdown-item" asp-controller="Kullanici" asp-action="Index">
+												Kullanıcıları Düzenle
+											</a>
+										</li>
+										<li>
+											<a class="dropdown-item" asp-controller="Malzemeler" asp-action="Index">
+												Malzemeleri Düzenle
+											</a>
+										</li>
+									</ul>
+								</li>
+							}
+
+							// --- PROFIL MENÜSÜ (İKONLU) ---
+							<li class="nav-item dropdown border-start ps-3 ms-2">
+								<a class="nav-link dropdown-toggle text-white" href="#" role="button"
+									data-bs-toggle="dropdown">
+									<i class="fa-solid fa-circle-user fa-lg text-success me-1"></i> @userName
+								</a>
+								<ul class="dropdown-menu dropdown-menu-end shadow">
+									<li>
+										<a class="nav-link" asp-controller="Kullanici" asp-action="Profil">Profilim</a>
+									</li>
+									<li>
+										<hr class="dropdown-divider">
+									</li>
+									<li>
+										<a class="dropdown-item text-danger" asp-controller="Account" asp-action="Logout">
+											Çıkış Yap
+										</a>
+									</li>
+								</ul>
+							</li>
+						}
+						else
+						{
+							<li class="nav-item">
+								<a class="nav-link text-white" asp-controller="Account" asp-action="Login">
+									Giriş Yap
+								</a>
+							</li>
+						}
+					</ul>
+				</div>
+			</div>
+		</nav>
+	</header>
+
+	<div class="container">
+		<main role="main" class="pb-3">
+			@if (TempData["Hata"] != null)
+			{
+				<div class="alert alert-danger alert-dismissible fade show" role="alert">
+					@TempData["Hata"]
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			}
+			@if (TempData["Basari"] != null)
+			{
+				<div class="alert alert-success alert-dismissible fade show" role="alert">
+					@TempData["Basari"]
+					<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+				</div>
+			}
+
+			@RenderBody()
+		</main>
+	</div>
+
+	<footer class="border-top footer text-muted bg-light mt-auto py-3">
+		<div class="container text-center small">
+			&copy; 2025 - Koudak Malzeme Takip - <a asp-area="" asp-controller="Home" asp-action="Privacy">Gizlilik</a>
+		</div>
+	</footer>
+
+	<script src="~/lib/jquery/dist/jquery.min.js"></script>
+	<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="~/js/site.js" asp-append-version="true"></script>
+	@await RenderSectionAsync("Scripts", required: false)
 </body>
+
 </html>
