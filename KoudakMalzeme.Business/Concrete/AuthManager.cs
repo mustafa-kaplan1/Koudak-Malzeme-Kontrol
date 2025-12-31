@@ -132,6 +132,9 @@ namespace KoudakMalzeme.Business.Concrete
 		public async Task<ServiceResult<List<Kullanici>>> TumKullanicilariGetirAsync()
 		{
 			var kullanicilar = await _context.Kullanicilar
+				.Include(u => u.AldigiEmanetler)
+					.ThenInclude(e => e.EmanetDetaylari)
+						.ThenInclude(ed => ed.Malzeme) // Malzeme isimlerini görebilmek için
 				.OrderBy(u => u.Ad)
 				.ToListAsync();
 
