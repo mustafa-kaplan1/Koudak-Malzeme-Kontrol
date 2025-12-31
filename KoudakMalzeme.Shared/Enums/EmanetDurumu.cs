@@ -2,11 +2,12 @@ namespace KoudakMalzeme.Shared.Enums
 {
 	public enum EmanetDurumu
 	{
-		TalepEdildi = 0,      // Kullanıcı istedi, onay bekliyor
-		TeslimEdildi = 1,     // Malzeme kullanıcıya verildi
-		KismenIadeEdildi = 2, // Bir kısmı getirildi, bir kısmı hala kullanıcıda
-		Tamamlandi = 3,       // Her şey geri alındı, işlem kapandı
-		IptalEdildi = 4,      // Talep reddedildi veya iptal oldu
-		Gecikmede = 5         // Süresi doldu getirilmedi
+		TalepEdildi = 1,
+		TeslimEdildi = 2,    // Zimmetlendi / Aktif
+		Tamamlandi = 3,      // İade Alındı / Kapandı
+		IptalEdildi = 4,     // İşlem İptal (Talep aşamasında)
+		Reddedildi = 5,      // Talep Reddedildi
+		IadeTalepEdildi = 6, // Kullanıcı iade etmek istiyor
+		KismenIadeEdildi = 7, // Bir kısmı iade edildi, kalanı duruyor
 	}
 }

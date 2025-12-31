@@ -16,10 +16,10 @@ namespace KoudakMalzeme.API.Controllers
 			_emanetService = emanetService;
 		}
 
-		[HttpPost("talep")]
+		// DÜZELTME 1: Adres "talep" -> "talep-et" yapıldı.
+		[HttpPost("talep-et")]
 		public async Task<IActionResult> TalepOlustur([FromBody] EmanetTalepOlusturDto dto)
 		{
-			// Token'dan kullanıcı ID'sini al
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
 			int userId = int.Parse(userIdClaim);
@@ -29,46 +29,63 @@ namespace KoudakMalzeme.API.Controllers
 			return BadRequest(result);
 		}
 
-		[HttpGet("talepler")]
-		[Authorize(Roles = "Admin,Malzemeci")] // Sadece yetkililer
+		// DÜZELTME 2: Adres "talepler" -> "bekleyen-talepler" yapıldı.
+		[HttpGet("bekleyen-talepler")]
+		[Authorize(Roles = "Admin,Malzemeci")]
 		public async Task<IActionResult> BekleyenTalepler()
 		{
 			var result = await _emanetService.BekleyenTalepleriGetirAsync();
 			return Ok(result);
 		}
 
-		[HttpPut("onayla")]
+		// DÜZELTME 3: [HttpPut] -> [HttpPost] yapıldı (MVC Post gönderdiği için).
+		[HttpPost("onayla")]
 		[Authorize(Roles = "Admin,Malzemeci")]
 		public async Task<IActionResult> TalepOnayla([FromBody] EmanetOnayDto dto)
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-			dto.PersonelId = int.Parse(userIdClaim!); // İşlemi yapan yetkili
+			// null kontrolü eklendi
+			dto.PersonelId = int.Parse(userIdClaim ?? "0");
 
 			var result = await _emanetService.TalebiOnaylaAsync(dto);
 			if (result.BasariliMi) return Ok(result);
 			return BadRequest(result);
 		}
 
-		[HttpPut("reddet")]
+		// DÜZELTME 4: [HttpPut] -> [HttpPost] yapıldı.
+		[HttpPost("reddet")]
 		[Authorize(Roles = "Admin,Malzemeci")]
 		public async Task<IActionResult> TalepReddet([FromBody] EmanetRedDto dto)
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-			dto.PersonelId = int.Parse(userIdClaim!);
+			dto.PersonelId = int.Parse(userIdClaim ?? "0");
 
 			var result = await _emanetService.TalebiReddetAsync(dto);
 			if (result.BasariliMi) return Ok(result);
 			return BadRequest(result);
 		}
 
+		[HttpPost("iade-talep")]
+		public async Task<IActionResult> IadeTalepOlustur([FromBody] EmanetIadeTalepDto dto)
+		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+			int userId = int.Parse(userIdClaim);
+
+			var result = await _emanetService.IadeTalepOlusturAsync(userId, dto);
+			if (result.BasariliMi) return Ok(result);
+			return BadRequest(result);
+		}
+
 		[HttpPost("iade-al")]
-		public async Task<IActionResult> IadeAl(EmanetIadeIstegiDto istek)
+		public async Task<IActionResult> IadeAl([FromBody] EmanetIadeIstegiDto istek)
 		{
 			var sonuc = await _emanetService.IadeAlAsync(istek);
 			if (sonuc.BasariliMi) return Ok(sonuc);
 			return BadRequest(sonuc);
 		}
 
+		// Mevcut diğer GET metodları (Bunlarda sorun yoktu)
 		[HttpGet("aktif")]
 		public async Task<IActionResult> AktifEmanetler()
 		{

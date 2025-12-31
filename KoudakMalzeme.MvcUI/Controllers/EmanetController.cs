@@ -229,32 +229,55 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			return Json(new { success = false, message = "Hata oluştu." });
 		}
 
-		// 5. İADE ALMA
 		[HttpGet]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public async Task<IActionResult> IadeAl(int id)
+		public async Task<IActionResult> IadeVer()
 		{
+			var client = CreateClient();
+			var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			// Kullanıcının kendi emanetlerini çekiyoruz
+			var response = await client.GetAsync($"api/emanetler/uye/{userId}");
+
+			// Sadece aktif (TeslimEdildi) olanları ve miktarı 0'dan büyük olanları filtreleyip View'a göndereceğiz
+			// API tüm geçmişi döner, filtrelemeyi burada veya backend'de yapabiliriz.
+			// Kolaylık olsun diye tüm listeyi View'a gönderip orada filtreleyeceğiz veya ViewModel kullanacağız.
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(_jsonOptions);
+				var tumEmanetler = result?.Veri ?? new List<Emanet>();
+
+				// View tarafında daha rahat işlem yapmak için sadece detayları düzleştirip gönderebiliriz
+				// Ancak basitlik adına direkt listeyi gönderelim.
+				return View(tumEmanetler);
+			}
+
+			return View(new List<Emanet>());
+		}
+
+		// 2. İade Talebi Gönder (Post)
+		[HttpPost]
+		public async Task<IActionResult> IadeTalepEt([FromBody] EmanetIadeTalepDto dto)
+		{
+			var client = CreateClient();
+			var response = await client.PostAsJsonAsync("api/emanetler/iade-talep", dto);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(_jsonOptions);
+				return Json(new { success = result?.BasariliMi, message = result?.Mesaj });
+			}
+
+			// Hata mesajını okumaya çalış
 			try
 			{
-				var client = CreateClient();
-				var response = await client.GetAsync($"api/emanetler/{id}");
-
-				if (response.IsSuccessStatusCode)
-				{
-					var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(_jsonOptions);
-					if (result?.Veri != null)
-					{
-						var model = new EmanetIadeViewModel
-						{
-							EmanetId = result.Veri.Id,
-							Emanet = result.Veri
-						};
-						return View(model);
-					}
-				}
+				var errResult = await response.Content.ReadFromJsonAsync<ServiceResult<object>>(_jsonOptions);
+				return Json(new { success = false, message = errResult?.Mesaj ?? "İşlem başarısız." });
 			}
-			catch { }
-			return RedirectToAction("Index");
+			catch
+			{
+				return Json(new { success = false, message = "Sunucu hatası." });
+			}
 		}
 
 		[HttpPost]

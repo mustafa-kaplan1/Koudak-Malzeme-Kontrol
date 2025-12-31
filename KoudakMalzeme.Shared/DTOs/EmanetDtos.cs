@@ -48,4 +48,9 @@ namespace KoudakMalzeme.Shared.Dtos
 		public int PersonelId { get; set; }
 		public string? RetNedeni { get; set; }
 	}
+
+	public class EmanetIadeTalepDto
+	{
+		public List<EmanetSepetItemDto> IadeEdilecekler { get; set; } = new();
+	}
 }
