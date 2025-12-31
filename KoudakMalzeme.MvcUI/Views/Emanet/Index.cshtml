@@ -1,59 +1,84 @@
 @model List<KoudakMalzeme.Shared.Entities.Emanet>
 @{
-	ViewData["Title"] = "Aktif Emanetler";
+	ViewData["Title"] = "Emanet Kayıtları";
 }
 
-<h2 class="text-success mb-4"><i class="fa-solid fa-list-check"></i> Aktif Emanet Listesi</h2>
+<h2 class="mb-4 text-primary"><i class="fa-solid fa-list-check"></i> Emanet Kayıtları</h2>
 
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm">
 	<div class="card-body">
-		<table class="table table-hover align-middle">
-			<thead class="table-light">
-				<tr>
-					<th>Emanet No</th>
-					<th>Üye</th>
-					<th>Veriliş Tarihi</th>
-					<th>Durum</th>
-					<th>İşlem</th>
-				</tr>
-			</thead>
-			<tbody>
-				@foreach (var item in Model)
-				{
+		<div class="table-responsive">
+			<table class="table table-hover align-middle">
+				<thead class="table-light">
 					<tr>
-						<td>#@item.Id</td>
-						<td>
-							<span class="fw-bold">@item.Uye?.Ad @item.Uye?.Soyad</span><br />
-							<small class="text-muted">@item.Uye?.OkulNo</small>
-						</td>
-						<td>@item.TeslimAlmaTarihi.ToString("dd.MM.yyyy HH:mm")</td>
-						<td>
-							@if (item.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi)
-							{
-								<span class="badge bg-warning text-dark">Teslim Edildi (Bekliyor)</span>
-							}
-							else if (item.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.KismenIadeEdildi)
-							{
-								<span class="badge bg-info">Kısmen İade</span>
-							}
-							else
-							{
-								<span class="badge bg-danger">Gecikmede</span>
-							}
-						</td>
-						<td>
-							<a asp-action="IadeAl" asp-route-id="@item.Id" class="btn btn-sm btn-outline-success">
-								<i class="fa-solid fa-rotate-left"></i> İade Al / Detay
-							</a>
-						</td>
+						<th>Durum</th>
+						<th>Alan Üye</th>
+						<th>Veren Yetkili</th>
+						<th>İade Alan</th>
+						<th>Veriliş Tarihi</th>
+						<th>İade Tarihi</th>
+						<th>İşlem</th>
 					</tr>
-				}
-			</tbody>
-		</table>
+				</thead>
+				<tbody>
+					@foreach (var item in Model)
+					{
+						<tr>
+							<td>
+								@if (item.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi)
+								{
+									<span class="badge bg-warning text-dark">Aktif (Zimmetli)</span>
+								}
+								else if (item.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.Tamamlandi)
+								{
+									<span class="badge bg-success">Tamamlandı</span>
+								}
+								else
+								{
+									<span class="badge bg-secondary">@item.Durum</span>
+								}
+							</td>
+							<td class="fw-bold">@item.Uye?.Ad @item.Uye?.Soyad</td>
+							<td>@item.VerenPersonel?.Ad @item.VerenPersonel?.Soyad</td>
+							<td>
+								@(item.AlanPersonel != null ? $"{item.AlanPersonel.Ad} {item.AlanPersonel.Soyad}" : "-")
+							</td>
+							<td>@item.TeslimAlmaTarihi.ToString("dd.MM.yyyy")</td>
+							<td>
+								@(item.IadeTarihi.HasValue? item.IadeTarihi.Value.ToString("dd.MM.yyyy") : "-")
+							</td>
+							<td>
+								<button class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+									data-bs-target="#detayModal-@item.Id">
+									<i class="fa-solid fa-eye"></i> Detay
+								</button>
 
-		@if (Model.Count == 0)
-		{
-			<div class="alert alert-info mt-3">Şu an aktif bir emanet kaydı bulunmuyor.</div>
-		}
+								<div class="modal fade" id="detayModal-@item.Id" tabindex="-1">
+									<div class="modal-dialog">
+										<div class="modal-content">
+											<div class="modal-header">
+												<h5 class="modal-title">Emanet Detayı</h5>
+												<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+											</div>
+											<div class="modal-body">
+												<h6>İçerik:</h6>
+												<ul>
+													@foreach (var d in item.EmanetDetaylari)
+													{
+														<li>@d.Malzeme.Ad - <b>@d.AlinanAdet Adet</b></li>
+													}
+												</ul>
+												<hr />
+												<p><b>Malzemeci Notu:</b> @(item.MalzemeciNotu ?? "Yok")</p>
+											</div>
+										</div>
+									</div>
+								</div>
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
 	</div>
 </div>

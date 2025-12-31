@@ -1,0 +1,211 @@
+@model List<KoudakMalzeme.Shared.Entities.Malzeme>
+@{
+	ViewData["Title"] = "Malzeme Talep Et";
+}
+
+<div class="container-fluid">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<div>
+			<h2 class="text-success fw-bold"><i class="fa-solid fa-cart-plus"></i> Malzeme Talep Et</h2>
+			<p class="text-muted">İhtiyacınız olan malzemeleri seçip liste oluşturun.</p>
+		</div>
+
+		<button class="btn btn-primary btn-lg position-relative" id="btnSepet" data-bs-toggle="modal"
+			data-bs-target="#modalTalep" disabled>
+			<i class="fa-solid fa-paper-plane"></i> Talebi Gönder
+			<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+				id="sepetSayisi" style="display:none;">
+				0
+			</span>
+		</button>
+	</div>
+
+	<div class="card shadow-sm border-0">
+		<div class="card-body p-0">
+			<div class="table-responsive">
+				<table class="table table-hover align-middle mb-0">
+					<thead class="table-light">
+						<tr>
+							<th style="width: 50px;" class="text-center">Seç</th>
+							<th>Malzeme</th>
+							<th class="text-center">Stok</th>
+							<th style="width: 150px;">Miktar</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var item in Model)
+						{
+							bool stokYok = item.GuncelStok <= 0;
+							<tr class="@(stokYok ? "table-secondary opacity-75" : "")">
+								<td class="text-center">
+									<input type="checkbox" class="form-check-input malzeme-secim scale-125"
+										data-id="@item.Id" data-ad="@item.Ad" data-stok="@item.GuncelStok" @(stokYok ?
+																													"disabled" : "") />
+								</td>
+								<td>
+									<div class="d-flex align-items-center">
+										@if (!string.IsNullOrEmpty(item.GorselYolu))
+										{
+											<img src="@item.GorselYolu" class="rounded border me-3"
+												style="width: 50px; height: 50px; object-fit: cover;"
+												onerror="this.src='https://placehold.co/50x50'" />
+										}
+										else
+										{
+											<div class="rounded bg-light border d-flex align-items-center justify-content-center me-3"
+												style="width: 50px; height: 50px;">
+												<i class="fa-solid fa-cube text-secondary"></i>
+											</div>
+										}
+										<div>
+											<span class="fw-bold d-block">@item.Ad</span>
+											<small class="text-muted">@item.Aciklama</small>
+										</div>
+									</div>
+								</td>
+								<td class="text-center">
+									@if (stokYok)
+									{
+										<span class="badge bg-secondary">Tükendi</span>
+									}
+									else
+									{
+										<span class="badge bg-success bg-opacity-75 text-white">@item.GuncelStok</span>
+									}
+								</td>
+								<td>
+									<input type="number" class="form-control form-control-sm miktar-input" min="1"
+										max="@item.GuncelStok" value="1" disabled />
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@if (Model.Count == 0)
+				{
+					<div class="text-center py-5">
+						<p class="text-muted">Listelenecek malzeme bulunamadı.</p>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+</div>
+
+<div class="modal fade" id="modalTalep" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Talep Özeti</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<ul id="talepListesi" class="list-group list-group-flush mb-3"></ul>
+				<div class="alert alert-warning small border-0 bg-warning bg-opacity-10 text-warning-emphasis">
+					<i class="fa-solid fa-info-circle me-2"></i> Talep oluşturduğunuzda malzemeler stoktan hemen düşmez.
+					Yöneticiler onayladığında zimmetinize geçer.
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+				<button type="button" class="btn btn-success" onclick="talepGonder()">
+					<i class="fa-solid fa-check"></i> Onayla ve Gönder
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+	.scale-125 {
+		transform: scale(1.25);
+		cursor: pointer;
+	}
+</style>
+
+@section Scripts {
+	<script>
+		// Checkbox yönetimi
+		$('.malzeme-secim').change(function () {
+			var row = $(this).closest('tr');
+			var input = row.find('.miktar-input');
+
+			if (this.checked) {
+				input.prop('disabled', false).focus();
+			} else {
+				input.prop('disabled', true).val(1);
+			}
+			guncelleSepet();
+		});
+
+		// Miktar kontrolü
+		$('.miktar-input').on('input', function () {
+			var max = parseInt($(this).attr('max'));
+			var val = parseInt($(this).val());
+			if (val > max) $(this).val(max);
+			if (val < 1) $(this).val(1);
+		});
+
+		function guncelleSepet() {
+			var seciliSayisi = $('.malzeme-secim:checked').length;
+
+			if (seciliSayisi > 0) {
+				$('#btnSepet').prop('disabled', false).removeClass('btn-secondary').addClass('btn-primary');
+				$('#sepetSayisi').text(seciliSayisi).show();
+			} else {
+				$('#btnSepet').prop('disabled', true).removeClass('btn-primary').addClass('btn-secondary');
+				$('#sepetSayisi').hide();
+			}
+
+			// Modal Listesi
+			var html = '';
+			$('.malzeme-secim:checked').each(function () {
+				var row = $(this).closest('tr');
+				var ad = $(this).data('ad');
+				var adet = row.find('.miktar-input').val();
+				html += `<li class="list-group-item d-flex justify-content-between align-items-center">
+		                            <span><i class="fa-solid fa-box-open text-muted me-2"></i>${ad}</span>
+		                            <span class="badge bg-primary rounded-pill">${adet} Adet</span>
+		                         </li>`;
+			});
+			$('#talepListesi').html(html);
+		}
+
+		function talepGonder() {
+			var talepData = { Malzemeler: [] };
+
+			$('.malzeme-secim:checked').each(function () {
+				var row = $(this).closest('tr');
+				var id = $(this).data('id');
+				var adet = parseInt(row.find('.miktar-input').val());
+				talepData.Malzemeler.push({ MalzemeId: id, Adet: adet });
+			});
+
+			$.ajax({
+				url: '/Emanet/TalepEt',
+				type: 'POST',
+				contentType: 'application/json',
+				data: JSON.stringify(talepData),
+				success: function (res) {
+					if (res.success) {
+						// Başarılı uyarısı
+						Swal.fire({
+							icon: 'success',
+							title: 'Talep Alındı!',
+							text: res.message,
+							confirmButtonColor: '#198754'
+						}).then(() => {
+							window.location.href = '/Emanet/Index'; // Taleplerim sayfasına yönlendirilebilir
+						});
+					} else {
+						Swal.fire('Hata', res.message, 'error');
+					}
+				},
+				error: function () {
+					Swal.fire('Hata', 'Bir sorun oluştu.', 'error');
+				}
+			});
+		}
+	</script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+}

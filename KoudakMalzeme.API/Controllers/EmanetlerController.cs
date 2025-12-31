@@ -1,6 +1,7 @@
 using KoudakMalzeme.Business.Abstract;
 using KoudakMalzeme.Shared.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KoudakMalzeme.API.Controllers
 {
@@ -15,12 +16,49 @@ namespace KoudakMalzeme.API.Controllers
 			_emanetService = emanetService;
 		}
 
-		[HttpPost("ver")]
-		public async Task<IActionResult> EmanetVer(EmanetVermeIstegiDto istek)
+		[HttpPost("talep")]
+		public async Task<IActionResult> TalepOlustur([FromBody] EmanetTalepOlusturDto dto)
 		{
-			var sonuc = await _emanetService.EmanetVerAsync(istek);
-			if (sonuc.BasariliMi) return Ok(sonuc);
-			return BadRequest(sonuc);
+			// Token'dan kullanıcı ID'sini al
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim)) return Unauthorized();
+			int userId = int.Parse(userIdClaim);
+
+			var result = await _emanetService.TalepOlusturAsync(userId, dto);
+			if (result.BasariliMi) return Ok(result);
+			return BadRequest(result);
+		}
+
+		[HttpGet("talepler")]
+		[Authorize(Roles = "Admin,Malzemeci")] // Sadece yetkililer
+		public async Task<IActionResult> BekleyenTalepler()
+		{
+			var result = await _emanetService.BekleyenTalepleriGetirAsync();
+			return Ok(result);
+		}
+
+		[HttpPut("onayla")]
+		[Authorize(Roles = "Admin,Malzemeci")]
+		public async Task<IActionResult> TalepOnayla([FromBody] EmanetOnayDto dto)
+		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			dto.PersonelId = int.Parse(userIdClaim!); // İşlemi yapan yetkili
+
+			var result = await _emanetService.TalebiOnaylaAsync(dto);
+			if (result.BasariliMi) return Ok(result);
+			return BadRequest(result);
+		}
+
+		[HttpPut("reddet")]
+		[Authorize(Roles = "Admin,Malzemeci")]
+		public async Task<IActionResult> TalepReddet([FromBody] EmanetRedDto dto)
+		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			dto.PersonelId = int.Parse(userIdClaim!);
+
+			var result = await _emanetService.TalebiReddetAsync(dto);
+			if (result.BasariliMi) return Ok(result);
+			return BadRequest(result);
 		}
 
 		[HttpPost("iade-al")]

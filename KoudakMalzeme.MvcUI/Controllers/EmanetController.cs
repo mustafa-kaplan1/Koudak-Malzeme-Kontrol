@@ -1,9 +1,11 @@
 using KoudakMalzeme.MvcUI.Models;
 using KoudakMalzeme.Shared.Dtos;
 using KoudakMalzeme.Shared.Entities;
+using KoudakMalzeme.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Headers;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace KoudakMalzeme.MvcUI.Controllers
@@ -12,110 +14,156 @@ namespace KoudakMalzeme.MvcUI.Controllers
 	public class EmanetController : Controller
 	{
 		private readonly IHttpClientFactory _httpClientFactory;
+		private readonly JsonSerializerOptions _jsonOptions;
 
 		public EmanetController(IHttpClientFactory httpClientFactory)
 		{
 			_httpClientFactory = httpClientFactory;
+			_jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 		}
 
-		// 1. Emanet Verme Sayfası (GET)
-		[HttpGet]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public async Task<IActionResult> Ver()
+		// --- YARDIMCI METOT ---
+		private HttpClient CreateClient()
 		{
-			var model = new EmanetVerViewModel();
 			var client = _httpClientFactory.CreateClient("ApiClient");
 			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			// Üyeleri Getir (Api'de tüm kullanıcıları getiren bir endpoint lazım veya filtreli)
-			// Not: KullaniciController yazmadığımız için şimdilik admin yetkisiyle API'den çekeceğiz.
-			// Eğer API'de 'api/kullanicilar' yoksa eklememiz gerekebilir ama şimdilik varsayalım.
-			// (Shared katmanındaki UserDtos burada işe yarayacak)
-
-			// Malzemeleri Getir
-			var matResponse = await client.GetAsync("api/malzemeler");
-			if (matResponse.IsSuccessStatusCode)
+			if (!string.IsNullOrEmpty(token))
 			{
-				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-				var result = await matResponse.Content.ReadFromJsonAsync<ServiceResult<List<Malzeme>>>(options);
-				if (result?.Veri != null) model.Malzemeler = result.Veri;
+				client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 			}
-
-			// NOT: Üye listesi için geçici bir çözüm yapıyoruz.
-			// Gerçek projede 'api/kullanicilar' endpointi olmalı.
-			// Şimdilik boş liste gönderiyorum, aşağıda View tarafında AJAX ile arama yapılabilir 
-			// veya API'ye basit bir 'GetUsers' ekleyebiliriz. 
-			// *Senin için API'ye dokunmadan View tarafında ID girişi ile çözeceğim.*
-
-			return View(model);
+			return client;
 		}
 
-		// 2. Emanet İşlemini Kaydet (POST)
-		[HttpPost]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public async Task<IActionResult> Ver([FromBody] EmanetVermeIstegiDto istek)
-		{
-			// Bu metot AJAX (JSON) ile çağrılacak
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			// Veren Personel ID'sini (Giriş yapan kullanıcı) ekle
-			var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-			if (!string.IsNullOrEmpty(userIdStr)) istek.VerenPersonelId = int.Parse(userIdStr);
-
-			var response = await client.PostAsJsonAsync("api/emanetler/ver", istek);
-
-			if (response.IsSuccessStatusCode)
-			{
-				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-				var result = await response.Content.ReadFromJsonAsync<ServiceResult<int>>(options);
-				return Json(new { basarili = true, mesaj = result?.Mesaj });
-			}
-
-			return Json(new { basarili = false, mesaj = "İşlem sırasında hata oluştu." });
-		}
-
-		// --- İADE İŞLEMLERİ ---
-
-		// 1. Aktif Emanetleri Listeleme Ekranı
+		// 1. EMANET KAYITLARI / GEÇMİŞİ (LİSTELEME)
 		[HttpGet]
 		public async Task<IActionResult> Index()
 		{
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+			var client = CreateClient();
+			var isAdmin = User.IsInRole("Admin") || User.IsInRole("Malzemeci");
 
-			var response = await client.GetAsync("api/emanetler/aktif");
+			// Admin ise tüm geçmişi, değilse sadece kendi geçmişini görsün
+			// API tarafında 'gecmis' tüm kayıtları, 'uye/{id}' ise personelin kayıtlarını döner.
+			string endpoint;
+
+			if (isAdmin)
+			{
+				endpoint = "api/emanetler/gecmis";
+			}
+			else
+			{
+				var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+				endpoint = $"api/emanetler/uye/{userId}";
+			}
+
+			var response = await client.GetAsync(endpoint);
 
 			if (response.IsSuccessStatusCode)
 			{
-				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(options);
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(_jsonOptions);
 				return View(result?.Veri ?? new List<Emanet>());
 			}
 
-			TempData["Hata"] = "Emanetler yüklenemedi.";
+			TempData["Hata"] = "Emanet kayıtları yüklenirken bir hata oluştu.";
 			return View(new List<Emanet>());
 		}
 
-		// 2. İade Detay Sayfası (GET)
+		// 2. MALZEME TALEP ETME SAYFASI (KULLANICI)
 		[HttpGet]
+		public async Task<IActionResult> Al()
+		{
+			var client = CreateClient();
+			var response = await client.GetAsync("api/malzemeler");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Malzeme>>>(_jsonOptions);
+				return View(result?.Veri ?? new List<Malzeme>());
+			}
+
+			TempData["Hata"] = "Malzemeler yüklenemedi.";
+			return View(new List<Malzeme>());
+		}
+
+		// API: Talep Gönder
+		[HttpPost]
+		public async Task<IActionResult> TalepEt([FromBody] EmanetTalepOlusturDto dto)
+		{
+			var client = CreateClient();
+			var response = await client.PostAsJsonAsync("api/emanetler/talep-et", dto);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(_jsonOptions);
+				return Json(new { success = result?.BasariliMi, message = result?.Mesaj });
+			}
+
+			return Json(new { success = false, message = "Talep oluşturulurken sunucu hatası meydana geldi." });
+		}
+
+		// 3. BEKLEYEN TALEPLERİ YÖNETME (ADMİN/MALZEMECİ)
+		[HttpGet]
+		[Authorize(Roles = "Admin,Malzemeci")]
+		public async Task<IActionResult> Talepler()
+		{
+			var client = CreateClient();
+			var response = await client.GetAsync("api/emanetler/bekleyen-talepler");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(_jsonOptions);
+				return View(result?.Veri ?? new List<Emanet>());
+			}
+
+			TempData["Hata"] = "Talepler yüklenemedi.";
+			return View(new List<Emanet>());
+		}
+
+		// API: Talebi Onayla
+		[HttpPost]
+		[Authorize(Roles = "Admin,Malzemeci")]
+		public async Task<IActionResult> Onayla([FromBody] EmanetOnayDto dto)
+		{
+			var client = CreateClient();
+			var response = await client.PostAsJsonAsync("api/emanetler/onayla", dto);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<bool>>(_jsonOptions);
+				return Json(new { success = result?.BasariliMi, message = result?.Mesaj });
+			}
+
+			return Json(new { success = false, message = "Onay işlemi başarısız." });
+		}
+
+		// API: Talebi Reddet
+		[HttpPost]
+		[Authorize(Roles = "Admin,Malzemeci")]
+		public async Task<IActionResult> Reddet([FromBody] EmanetRedDto dto)
+		{
+			var client = CreateClient();
+			var response = await client.PostAsJsonAsync("api/emanetler/reddet", dto);
+
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<bool>>(_jsonOptions);
+				return Json(new { success = result?.BasariliMi, message = result?.Mesaj });
+			}
+
+			return Json(new { success = false, message = "Red işlemi başarısız." });
+		}
+
+		// 4. İADE ALMA İŞLEMİ (ADMİN/MALZEMECİ)
+		[HttpGet]
+		[Authorize(Roles = "Admin,Malzemeci")]
 		public async Task<IActionResult> IadeAl(int id)
 		{
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
+			var client = CreateClient();
 			var response = await client.GetAsync($"api/emanetler/{id}");
 
 			if (response.IsSuccessStatusCode)
 			{
-				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(options);
-
-				if (result != null && result.BasariliMi)
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(_jsonOptions);
+				if (result?.Veri != null)
 				{
 					var model = new EmanetIadeViewModel
 					{
@@ -126,26 +174,24 @@ namespace KoudakMalzeme.MvcUI.Controllers
 				}
 			}
 
-			TempData["Hata"] = "Kayıt bulunamadı.";
+			TempData["Hata"] = "Emanet kaydı bulunamadı.";
 			return RedirectToAction("Index");
 		}
 
-		// 3. İade Kaydetme (POST)
 		[HttpPost]
+		[Authorize(Roles = "Admin,Malzemeci")]
 		public async Task<IActionResult> IadeAl(EmanetIadeViewModel model)
 		{
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+			var client = CreateClient();
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-			var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
+			// ViewModel'den DTO'ya dönüştür
 			var dto = new EmanetIadeIstegiDto
 			{
 				EmanetId = model.EmanetId,
 				AlanPersonelId = int.Parse(userIdStr ?? "0"),
 				IadeEdilenler = model.IadeAdetleri
-					.Where(x => x.Value > 0) // Sadece 0'dan büyük girilenleri al
+					.Where(x => x.Value > 0) // Sadece 0'dan büyük girilenler
 					.Select(x => new EmanetKalemDto { MalzemeId = x.Key, Adet = x.Value })
 					.ToList()
 			};
@@ -154,14 +200,12 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			if (response.IsSuccessStatusCode)
 			{
-				TempData["Basari"] = "İade işlemi başarıyla kaydedildi.";
+				TempData["Basari"] = "İade başarıyla alındı.";
 				return RedirectToAction("Index");
 			}
 
-			TempData["Hata"] = "İade alınırken hata oluştu.";
-			return RedirectToAction("Index"); // Hata olursa listeye dön
+			TempData["Hata"] = "İade işlemi sırasında hata oluştu.";
+			return RedirectToAction("Index");
 		}
 	}
-
-
 }

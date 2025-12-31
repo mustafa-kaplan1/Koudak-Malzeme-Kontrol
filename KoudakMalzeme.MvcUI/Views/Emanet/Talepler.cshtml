@@ -1,0 +1,119 @@
+@model List<KoudakMalzeme.Shared.Entities.Emanet>
+@{
+	ViewData["Title"] = "Bekleyen Talepler";
+}
+
+<h2 class="mb-4 text-warning fw-bold"><i class="fa-solid fa-clipboard-question"></i> Onay Bekleyen Talepler</h2>
+
+@if (Model.Count == 0)
+{
+	<div class="alert alert-success border-0 shadow-sm">
+		<i class="fa-solid fa-check-circle me-2"></i> Bekleyen talep yok, her şey güncel!
+	</div>
+}
+else
+{
+	<div class="row">
+		@foreach (var talep in Model)
+		{
+			<div class="col-md-6 col-xl-4 mb-4">
+				<div class="card h-100 border-0 shadow-sm border-top border-4 border-warning">
+					<div class="card-body">
+						<div class="d-flex justify-content-between mb-3">
+							<div>
+								<h5 class="card-title fw-bold mb-0">@talep.Uye.Ad @talep.Uye.Soyad</h5>
+								<small class="text-muted">@talep.Uye.OkulNo</small>
+							</div>
+							<div class="text-end">
+								<span class="badge bg-warning text-dark">Bekliyor</span>
+								<div class="small text-muted mt-1">@talep.TeslimAlmaTarihi.ToString("dd.MM HH:mm")</div>
+							</div>
+						</div>
+
+						<h6 class="text-muted small text-uppercase fw-bold">İstenen Malzemeler</h6>
+						<ul class="list-group list-group-flush mb-3 bg-light rounded">
+							@foreach (var detay in talep.EmanetDetaylari)
+							{
+								<li class="list-group-item bg-transparent d-flex justify-content-between align-items-center">
+									<span>@detay.Malzeme.Ad</span>
+									<span class="fw-bold">x @detay.AlinanAdet</span>
+								</li>
+							}
+						</ul>
+
+						<div class="d-grid gap-2">
+							<button class="btn btn-success" onclick="onayModalAc(@talep.Id, '@talep.Uye.Ad @talep.Uye.Soyad')">
+								<i class="fa-solid fa-check"></i> Onayla
+							</button>
+							<button class="btn btn-outline-danger" onclick="redModalAc(@talep.Id)">
+								<i class="fa-solid fa-xmark"></i> Reddet
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		}
+	</div>
+}
+
+<div class="modal fade" id="modalOnay" tabindex="-1">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Talebi Onayla</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+			</div>
+			<div class="modal-body">
+				<input type="hidden" id="onayEmanetId" />
+				<p><b><span id="onayUyeAdi"></span></b> isimli üyenin talebini onaylıyor musunuz?</p>
+
+				<div class="mb-3">
+					<label class="form-label">Planlanan İade Tarihi</label>
+					<input type="date" id="onayTarih" class="form-control" />
+				</div>
+				<div class="mb-3">
+					<label class="form-label">Malzemeci Notu</label>
+					<textarea id="onayNotu" class="form-control" rows="2" placeholder="Varsa notunuz..."></textarea>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-success" onclick="talebiOnayla()">Onayla ve Stoktan Düş</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+	function onayModalAc(id, ad) {
+		$('#onayEmanetId').val(id);
+		$('#onayUyeAdi').text(ad);
+		// Varsayılan iade tarihi: Bugün + 7 gün
+		var date = new Date();
+		date.setDate(date.getDate() + 7);
+		$('#onayTarih').val(date.toISOString().split('T')[0]);
+
+		$('#modalOnay').modal('show');
+	}
+
+	function talebiOnayla() {
+		var data = {
+			EmanetId: $('#onayEmanetId').val(),
+			MalzemeciNotu: $('#onayNotu').val(),
+			PlanlananIadeTarihi: $('#onayTarih').val()
+		};
+
+		$.ajax({
+			url: '/Emanet/Onayla',
+			type: 'POST',
+			contentType: 'application/json',
+			data: JSON.stringify(data),
+			success: function (res) {
+				if (res.success) location.reload();
+				else alert(res.message);
+			}
+		});
+	}
+
+	// Reddetme fonksiyonunu da benzer şekilde ekleyebilirsiniz...
+</script>

@@ -7,18 +7,15 @@ namespace KoudakMalzeme.Business.Abstract
 {
 	public interface IEmanetService
 	{
-		// Emanet Verme İşlemi
+		Task<ServiceResult<Emanet>> TalepOlusturAsync(int uyeId, EmanetTalepOlusturDto dto);
+		Task<ServiceResult<List<Emanet>>> BekleyenTalepleriGetirAsync();
+		Task<ServiceResult<bool>> TalebiOnaylaAsync(EmanetOnayDto dto);
+		Task<ServiceResult<bool>> TalebiReddetAsync(EmanetRedDto dto);
 		Task<ServiceResult<int>> EmanetVerAsync(EmanetVermeIstegiDto istek);
-
-		// İade Alma İşlemi
-		Task<ServiceResult<bool>> IadeAlAsync(EmanetIadeIstegiDto istek);
-
-		// Sorgulamalar
+		Task<ServiceResult<int>> IadeAlAsync(EmanetIadeIstegiDto istek);
 		Task<ServiceResult<List<Emanet>>> AktifEmanetleriGetirAsync();
 		Task<ServiceResult<List<Emanet>>> GecmisEmanetleriGetirAsync();
 		Task<ServiceResult<Emanet>> GetirByIdAsync(int id);
-
-		// Bir üyenin üzerindeki malzemeler
 		Task<ServiceResult<List<Emanet>>> UyeEmanetleriniGetirAsync(int uyeId);
 	}
 }
