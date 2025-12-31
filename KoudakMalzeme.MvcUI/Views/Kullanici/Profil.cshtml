@@ -38,9 +38,58 @@
 	</div>
 
 	<div class="col-md-8">
+
+		<div class="card shadow border-0 mb-4">
+			<div class="card-header bg-warning text-dark border-bottom-0 pt-3 pb-2">
+				<h5 class="fw-bold mb-0"><i class="fa-solid fa-hand-holding-box me-2"></i> Zimmetindeki Malzemeler</h5>
+			</div>
+			<div class="card-body p-0">
+				@if (Model.AktifZimmetListesi.Count > 0)
+				{
+					<table class="table table-striped mb-0">
+						<thead class="table-light">
+							<tr>
+								<th>Malzeme</th>
+								<th class="text-center">Adet</th>
+								<th>Veriliş Tarihi</th>
+								<th>İşlem</th>
+							</tr>
+						</thead>
+						<tbody>
+							@foreach (var item in Model.AktifZimmetListesi)
+							{
+								<tr>
+									<td class="fw-bold">@item.MalzemeAdi</td>
+									<td class="text-center"><span class="badge bg-danger">@item.Adet</span></td>
+									<td>@item.VerilisTarihi.ToString("dd.MM.yyyy")</td>
+									<td>
+										@if (Model.KendiProfiliMi || User.IsInRole("Admin") || User.IsInRole("Malzemeci"))
+										{
+											<a asp-controller="Emanet" asp-action="IadeAl" asp-route-id="@item.EmanetId"
+												class="btn btn-xs btn-outline-dark btn-sm">
+												<i class="fa-solid fa-arrow-right"></i> Git
+											</a>
+										}
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				}
+				else
+				{
+					<div class="p-4 text-center text-muted">
+						<i class="fa-solid fa-check-circle fa-2x text-success mb-2"></i>
+						<p class="mb-0">Şu an üzerinde zimmetli malzeme bulunmamaktadır.</p>
+					</div>
+				}
+			</div>
+		</div>
+
 		<div class="card shadow border-0">
 			<div class="card-header bg-white border-bottom-0 pt-4 pb-0">
-				<h5 class="fw-bold text-success"><i class="fa-solid fa-clock-rotate-left"></i> Emanet Geçmişi</h5>
+				<h5 class="fw-bold text-secondary"><i class="fa-solid fa-clock-rotate-left me-2"></i> Emanet İşlem
+					Geçmişi</h5>
 			</div>
 			<div class="card-body">
 				@if (Model.Emanetler.Count == 0)
@@ -56,22 +105,24 @@
 						<table class="table table-hover align-middle">
 							<thead class="table-light">
 								<tr>
+									<th>Emanet No</th>
 									<th>Tarih</th>
-									<th>Malzemeler</th>
+									<th>İçerik</th>
 									<th>Durum</th>
 									<th>İşlem</th>
 								</tr>
 							</thead>
 							<tbody>
-								@foreach (var emanet in Model.Emanetler)
+								@foreach (var emanet in Model.Emanetler.OrderByDescending(x => x.TeslimAlmaTarihi))
 								{
 									<tr>
+										<td><small class="text-muted">#@emanet.Id</small></td>
 										<td>@emanet.TeslimAlmaTarihi.ToString("dd.MM.yyyy")</td>
 										<td>
 											<ul class="list-unstyled mb-0 small">
 												@foreach (var detay in emanet.EmanetDetaylari)
 												{
-													<li>• @detay.Malzeme.Ad (@detay.AlinanAdet adet)</li>
+													<li>• @detay.Malzeme?.Ad (@detay.AlinanAdet adet)</li>
 												}
 											</ul>
 										</td>
@@ -80,9 +131,13 @@
 											{
 												<span class="badge bg-warning text-dark">Aktif</span>
 											}
+											else if (emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.KismenIadeEdildi)
+											{
+												<span class="badge bg-info">Kısmen İade</span>
+											}
 											else if (emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.Tamamlandi)
 											{
-												<span class="badge bg-success">İade Edildi</span>
+												<span class="badge bg-success">Tamamlandı</span>
 											}
 											else
 											{
@@ -92,12 +147,11 @@
 										<td>
 											@if (emanet.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.Tamamlandi)
 											{
-												// Eğer kendi profili veya yetkili ise İade butonu göster
 												if (Model.KendiProfiliMi || User.IsInRole("Admin") || User.IsInRole("Malzemeci"))
 												{
 													<a asp-controller="Emanet" asp-action="IadeAl" asp-route-id="@emanet.Id"
 														class="btn btn-sm btn-outline-success">
-														<i class="fa-solid fa-rotate-left"></i> İade Et
+														<i class="fa-solid fa-rotate-left"></i> İşlem
 													</a>
 												}
 											}

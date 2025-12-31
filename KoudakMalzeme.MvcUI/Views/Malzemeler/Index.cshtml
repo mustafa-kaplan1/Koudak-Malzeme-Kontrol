@@ -1,156 +1,170 @@
-@using KoudakMalzeme.Shared.Entities
-@using KoudakMalzeme.Shared.Enums
-@model List<Malzeme>
+@model List<KoudakMalzeme.Shared.Entities.Malzeme>
 
 @{
 	ViewData["Title"] = "Malzeme Listesi";
-	bool yetkili = User.IsInRole("Admin") || User.IsInRole("Malzemeci");
-	bool admin = User.IsInRole("Admin");
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-	<h2 class="text-success"><i class="fa-solid fa-list-check"></i> Malzeme Listesi</h2>
-	@if (yetkili)
-	{
-		<a asp-action="Ekle" class="btn btn-success"><i class="fa-solid fa-plus"></i> Yeni Malzeme</a>
-	}
-</div>
+<div class="container-fluid">
+	<div class="row mb-4 align-items-center">
+		<div class="col-md-6">
+			<h2 class="text-success fw-bold"><i class="fa-solid fa-boxes-stacked"></i> Malzeme Listesi</h2>
+		</div>
+		<div class="col-md-6">
+			<div class="input-group">
+				<span class="input-group-text bg-white border-end-0"><i
+						class="fa-solid fa-search text-muted"></i></span>
+				<input type="text" id="searchInput" class="form-control border-start-0"
+					placeholder="Malzeme adı ile ara..." autocomplete="off">
+			</div>
+		</div>
+	</div>
 
-<div class="card shadow-sm">
-	<div class="card-body p-0">
-		<div class="table-responsive">
-			<table class="table table-hover table-striped align-middle mb-0">
-				<thead class="bg-light">
-					<tr>
-						<th style="width: 20%;">Malzeme Adı</th>
-						<th style="width: 30%;">Açıklama</th>
-						<th style="width: 15%;" class="text-center">Adet (Mevcut)</th>
-						<th style="width: 20%;">Emanet Alanlar</th>
-						@if (yetkili)
-						{
-							<th style="width: 15%;" class="text-end">İşlemler</th>
-						}
-					</tr>
-				</thead>
-				<tbody>
-					@foreach (var item in Model)
-					{
-						// Sadece aktif emanetleri (geri gelmemiş ve iptal olmamış) bulalım
-						var aktifEmanetler = item.EmanetGecmisi?
-						.Where(x => !x.TamamlandiMi &&
-						x.Emanet.Durum != EmanetDurumu.IptalEdildi &&
-						x.Emanet.Durum != EmanetDurumu.Tamamlandi)
-						.Select(x => new
-						{
-							AdSoyad = x.Emanet.Uye.Ad + " " + x.Emanet.Uye.Soyad,
-							Adet = x.AlinanAdet - x.IadeEdilenAdet, // Kalan adet
-							Tarih = x.Emanet.TeslimAlmaTarihi
-						})
-						.ToList();
-
+	<div class="card shadow-sm border-0">
+		<div class="card-body p-0">
+			<div class="table-responsive">
+				<table class="table table-hover align-middle mb-0" id="malzemeTable">
+					<thead class="table-light">
 						<tr>
-							<td class="fw-bold text-success">@item.Ad</td>
-							<td class="text-muted small">@item.Aciklama</td>
+							<th style="cursor: pointer; min-width: 250px;" onclick="sortTable(0)">
+								 Malzeme Adı <i class="fa-solid fa-sort text-muted small ms-1"></i>
+							</th>
 
-							<td class="text-center">
-								<span class="badge bg-secondary fs-6">
-									@item.ToplamStok <span class="text-warning">(@item.GuncelStok)</span>
-								</span>
-							</td>
+							<th style="cursor: pointer;" onclick="sortTable(1)">
+								Açıklama <i class="fa-solid fa-sort text-muted small ms-1"></i>
+							</th>
 
-							<td>
-								@if (aktifEmanetler != null && aktifEmanetler.Any())
-								{
-									<ul class="list-unstyled mb-0 small">
-										@foreach (var emanet in aktifEmanetler.Take(2))
+							<th style="cursor: pointer; width: 180px;" onclick="sortTable(2, true)">
+								Stok <i class="fa-solid fa-sort text-muted small ms-1"></i>
+							</th>
+
+							<th style="cursor: pointer; width: 180px;" onclick="sortTable(3)">
+								Emanet Alanlar <i class="fa-solid fa-sort text-muted small ms-1"></i>
+							</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var item in Model)
+						{
+							// Emanet durumu: Eğer güncel stok toplamdan azsa, birileri almıştır.
+							bool emanetteVar = item.GuncelStok < item.ToplamStok;
+							int emanettekiAdet = item.ToplamStok - item.GuncelStok;
+
+							<tr>
+								<td>
+									<div class="d-flex align-items-center">
+										@if (!string.IsNullOrEmpty(item.GorselYolu))
 										{
-											<li><i class="fa-solid fa-user text-primary"></i> @emanet.AdSoyad <span
-													class="text-muted">(@emanet.Adet ad.)</span></li>
+											<img src="@item.GorselYolu" alt="img" class="rounded-circle border me-3"
+												style="width: 45px; height: 45px; object-fit: cover;"
+												onerror="this.onerror=null;this.src='https://placehold.co/45x45?text=Img';" />
 										}
-
-										@if (aktifEmanetler.Count > 2)
+										else
 										{
-											<li>
-												<a href="#" class="text-decoration-none fw-bold" data-bs-toggle="modal"
-													data-bs-target="#modalDetay_@item.Id">
-													... ve @(aktifEmanetler.Count - 2) kişi daha
-												</a>
-											</li>
-										}
-									</ul>
-
-									<div class="modal fade" id="modalDetay_@item.Id" tabindex="-1" aria-hidden="true">
-										<div class="modal-dialog">
-											<div class="modal-content">
-												<div class="modal-header">
-													<h5 class="modal-title">@item.Ad - Emanet Listesi</h5>
-													<button type="button" class="btn-close" data-bs-dismiss="modal"
-														aria-label="Kapat"></button>
-												</div>
-												<div class="modal-body">
-													<table class="table table-sm">
-														<thead>
-															<tr>
-																<th>Üye</th>
-																<th>Adet</th>
-																<th>Tarih</th>
-															</tr>
-														</thead>
-														<tbody>
-															@foreach (var detay in aktifEmanetler)
-															{
-																<tr>
-																	<td>@detay.AdSoyad</td>
-																	<td>@detay.Adet</td>
-																	<td>@detay.Tarih.ToShortDateString()</td>
-																</tr>
-															}
-														</tbody>
-													</table>
-												</div>
+											<div class="rounded-circle bg-light border d-flex align-items-center justify-content-center me-3"
+												style="width: 45px; height: 45px;">
+												<i class="fa-solid fa-cube text-secondary"></i>
 											</div>
-										</div>
+										}
+										<span class="fw-bold text-dark">@item.Ad</span>
 									</div>
-								}
-								else
-								{
-									<span class="text-muted small">-</span>
-								}
-							</td>
+								</td>
 
-							@if (yetkili)
-							{
-								<td class="text-end">
-									<div class="btn-group" role="group">
-										<a asp-action="Duzenle" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
-											title="Düzenle">
-											<i class="fa-solid fa-pen"></i>
-										</a>
-										@if (admin)
+								<td class="text-muted small">
+									@item.Aciklama
+								</td>
+
+								<td class="fw-bold text-center">
+									@item.ToplamStok <span class="text-muted fw-normal">(@item.GuncelStok)</span>
+								</td>
+
+								<td class="text-center">
+									<div data-value="@(emanetteVar ? "1" : "0")">
+										@if (emanetteVar)
 										{
-											<form asp-action="Sil" asp-route-id="@item.Id" method="post" class="d-inline"
-												onsubmit="return confirm('Silmek istediğine emin misin?');">
-												<button type="submit" class="btn btn-sm btn-outline-danger" title="Sil">
-													<i class="fa-solid fa-trash"></i>
-												</button>
-											</form>
+											<span class="badge bg-warning text-dark">
+												@emanettekiAdet Adet Emanette
+											</span>
+										}
+										else
+										{
+											<span class="fs-5 fw-bold text-muted">-</span>
 										}
 									</div>
 								</td>
-							}
-						</tr>
-					}
+							</tr>
+						}
+					</tbody>
+				</table>
 
-					@if (Model.Count == 0)
-					{
-						<tr>
-							<td colspan="5" class="text-center py-4 text-muted">
-								Henüz malzeme kaydı yok.
-							</td>
-						</tr>
-					}
-				</tbody>
-			</table>
+				@if (Model.Count == 0)
+				{
+					<div class="text-center py-5">
+						<p class="text-muted">Listelenecek malzeme yok.</p>
+					</div>
+				}
+			</div>
 		</div>
 	</div>
 </div>
+
+@section Scripts {
+	<script>
+		// --- ANLIK ARAMA (Büyük/Küçük Harf Duyarsız) ---
+		$(document).ready(function () {
+			$("#searchInput").on("keyup", function () {
+				var value = $(this).val().toLowerCase();
+				$("#malzemeTable tbody tr").filter(function () {
+					// Sadece ilk sütun (İsim) içinde arama yap
+					var text = $(this).find("td:eq(0)").text().toLowerCase();
+					$(this).toggle(text.indexOf(value) > -1)
+				});
+			});
+		});
+
+		// --- SIRALAMA FONKSİYONU ---
+		function sortTable(n, isNumber = false) {
+			var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+			table = document.getElementById("malzemeTable");
+			switching = true;
+			dir = "asc";
+
+			while (switching) {
+				switching = false;
+				rows = table.rows;
+
+				for (i = 1; i < (rows.length - 1); i++) {
+					shouldSwitch = false;
+					x = rows[i].getElementsByTagName("TD")[n];
+					y = rows[i + 1].getElementsByTagName("TD")[n];
+
+					// Hücre değerini al (Varsa data-value, yoksa text)
+					var xVal = x.querySelector('[data-value]') ? x.querySelector('[data-value]').getAttribute('data-value') : x.innerText.trim().toLowerCase();
+					var yVal = y.querySelector('[data-value]') ? y.querySelector('[data-value]').getAttribute('data-value') : y.innerText.trim().toLowerCase();
+
+					if (isNumber) {
+						// "10 (5)" formatından sadece baştaki sayıyı al (10)
+						var xNum = parseInt(xVal.split(' ')[0]) || 0;
+						var yNum = parseInt(yVal.split(' ')[0]) || 0;
+
+						if (dir == "asc") { if (xNum > yNum) { shouldSwitch = true; break; } }
+						else { if (xNum < yNum) { shouldSwitch = true; break; } }
+					} else {
+						if (dir == "asc") { if (xVal > yVal) { shouldSwitch = true; break; } }
+						else { if (xVal < yVal) { shouldSwitch = true; break; } }
+					}
+				}
+
+				if (shouldSwitch) {
+					rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+					switching = true;
+					switchcount++;
+				} else {
+					if (switchcount == 0 && dir == "asc") {
+						dir = "desc";
+						switching = true;
+					}
+				}
+			}
+		}
+	</script>
+}

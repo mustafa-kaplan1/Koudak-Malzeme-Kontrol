@@ -17,7 +17,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			_httpClientFactory = httpClientFactory;
 		}
 
-		// Malzeme Listesi (Herkes Görebilir)
 		[HttpGet]
 		public async Task<IActionResult> Index()
 		{
@@ -42,110 +41,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			TempData["Hata"] = "Malzemeler yüklenirken bir hata oluştu.";
 			return View(new List<Malzeme>());
-		}
-
-		// Ekleme Sayfası (Sadece Admin ve Malzemeci)
-		[HttpGet]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public IActionResult Ekle()
-		{
-			return View();
-		}
-
-		[HttpPost]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public async Task<IActionResult> Ekle(Malzeme malzeme)
-		{
-			// Formdan gelen veride ID 0 olur, sorun yok.
-			// Stok mantığını business katmanı hallediyor (Guncel = Toplam).
-
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			var response = await client.PostAsJsonAsync("api/malzemeler", malzeme);
-
-			if (response.IsSuccessStatusCode)
-			{
-				TempData["Basari"] = "Malzeme başarıyla eklendi.";
-				return RedirectToAction("Index");
-			}
-			else
-			{
-				// API'den dönen gerçek hatayı okuyup ekrana basalım
-				var hataMesaji = await response.Content.ReadAsStringAsync();
-				TempData["Hata"] = $"Ekleme başarısız: {hataMesaji}";
-			}
-			return View(malzeme);
-		}
-
-		// Düzenleme Sayfası
-		[HttpGet]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public async Task<IActionResult> Duzenle(int id)
-		{
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			var response = await client.GetAsync($"api/malzemeler/{id}");
-
-			if (response.IsSuccessStatusCode)
-			{
-				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Malzeme>>(options);
-
-				if (result != null && result.BasariliMi)
-				{
-					return View(result.Veri);
-				}
-			}
-
-			return RedirectToAction("Index");
-		}
-
-		[HttpPost]
-		[Authorize(Roles = "Admin,Malzemeci")]
-		public async Task<IActionResult> Duzenle(Malzeme malzeme)
-		{
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			var response = await client.PutAsJsonAsync("api/malzemeler", malzeme);
-
-			if (response.IsSuccessStatusCode)
-			{
-				TempData["Basari"] = "Malzeme güncellendi.";
-				return RedirectToAction("Index");
-			}
-
-			TempData["Hata"] = "Güncelleme başarısız.";
-			return View(malzeme);
-		}
-
-		// Silme İşlemi
-		[HttpPost] // Güvenlik için GET yerine POST tercih edilir
-		[Authorize(Roles = "Admin")] // Sadece Admin silebilir
-		public async Task<IActionResult> Sil(int id)
-		{
-			var client = _httpClientFactory.CreateClient("ApiClient");
-			var token = User.FindFirst("Token")?.Value;
-			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			var response = await client.DeleteAsync($"api/malzemeler/{id}");
-
-			if (response.IsSuccessStatusCode)
-			{
-				// Result'ı okuyup mesajı alabiliriz
-				TempData["Basari"] = "Malzeme silindi.";
-			}
-			else
-			{
-				TempData["Hata"] = "Silinemedi. Malzeme kullanımda olabilir.";
-			}
-
-			return RedirectToAction("Index");
 		}
 	}
 }

@@ -38,7 +38,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			return View(new List<Kullanici>());
 		}
 
-		// Profil Sayfası
 		public async Task<IActionResult> Profil(int id)
 		{
 			var client = _httpClientFactory.CreateClient("ApiClient");
@@ -47,7 +46,7 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			var model = new KullaniciProfilViewModel();
 
-			// 1. Kullanıcı Bilgisini Çek
+			// 1. Kullanıcı Bilgisi
 			var userResponse = await client.GetAsync($"api/kullanicilar/{id}");
 			if (userResponse.IsSuccessStatusCode)
 			{
@@ -56,16 +55,34 @@ namespace KoudakMalzeme.MvcUI.Controllers
 				if (result?.Veri != null) model.Kullanici = result.Veri;
 			}
 
-			// 2. Kullanıcının Emanetlerini Çek
+			// 2. Emanet Bilgileri
 			var emanetResponse = await client.GetAsync($"api/emanetler/uye/{id}");
 			if (emanetResponse.IsSuccessStatusCode)
 			{
 				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 				var result = await emanetResponse.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(options);
-				if (result?.Veri != null) model.Emanetler = result.Veri;
+				if (result?.Veri != null)
+				{
+					model.Emanetler = result.Veri;
+
+					// --- TEMİZ KOD BURADA: Hesaplamayı Controller'da yapıyoruz ---
+					model.AktifZimmetListesi = model.Emanetler
+						.Where(e => e.Durum != Shared.Enums.EmanetDurumu.Tamamlandi &&
+									e.Durum != Shared.Enums.EmanetDurumu.IptalEdildi)
+						.SelectMany(e => e.EmanetDetaylari.Select(d => new AktifZimmetOzetViewModel
+						{
+							MalzemeAdi = d.Malzeme?.Ad ?? "Bilinmeyen",
+							Adet = d.KalanAdet,
+							VerilisTarihi = e.TeslimAlmaTarihi,
+							EmanetId = e.Id
+						}))
+						.Where(x => x.Adet > 0)
+						.OrderBy(x => x.VerilisTarihi)
+						.ToList();
+				}
 			}
 
-			// 3. Kendi profili mi kontrol et
+			// 3. Kendi profili mi?
 			var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (currentUserId != null && int.Parse(currentUserId) == id)
 			{
