@@ -56,7 +56,6 @@
 								<th>Malzeme</th>
 								<th class="text-center">Adet</th>
 								<th>Veriliş Tarihi</th>
-								<th>İşlem</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -66,15 +65,6 @@
 									<td class="fw-bold">@item.MalzemeAdi</td>
 									<td class="text-center"><span class="badge bg-danger">@item.Adet</span></td>
 									<td>@item.VerilisTarihi.ToString("dd.MM.yyyy")</td>
-									<td>
-										@if (Model.KendiProfiliMi || User.IsInRole("Admin") || User.IsInRole("Malzemeci"))
-										{
-											<a asp-controller="Emanet" asp-action="IadeAl" asp-route-id="@item.EmanetId"
-												class="btn btn-xs btn-outline-dark btn-sm">
-												<i class="fa-solid fa-arrow-right"></i> Git
-											</a>
-										}
-									</td>
 								</tr>
 							}
 						</tbody>
@@ -113,7 +103,7 @@
 									<th>Tarih</th>
 									<th>İçerik</th>
 									<th>Durum</th>
-									<th>İşlem</th>
+									<th> </th>
 								</tr>
 							</thead>
 							<tbody>
@@ -153,9 +143,9 @@
 											{
 												if (Model.KendiProfiliMi || User.IsInRole("Admin") || User.IsInRole("Malzemeci"))
 												{
-													<a asp-controller="Emanet" asp-action="IadeAl" asp-route-id="@emanet.Id"
+													<a asp-controller="Emanet" asp-action="IadeEt" asp-route-id="@emanet.Id"
 														class="btn btn-sm btn-outline-success">
-														<i class="fa-solid fa-rotate-left"></i> İşlem
+														<i class="fa-solid fa-rotate-left"></i> İade Et
 													</a>
 												}
 											}
