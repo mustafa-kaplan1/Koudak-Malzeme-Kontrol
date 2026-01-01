@@ -229,69 +229,91 @@ namespace KoudakMalzeme.MvcUI.Controllers
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> IadeEt()
+		[HttpGet]
+		public async Task<IActionResult> IadeEt(int id)
 		{
 			var client = CreateClient();
-			var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-			// 1. Kullanıcının elindeki aktif (TeslimEdildi durumundaki) emanetleri çek
-			// Not: API tarafında "api/emanetler/uye/{id}" aktifleri de dönüyor olmalı.
-			var response = await client.GetAsync($"api/emanetler/uye/{userId}");
-
-			if (response.IsSuccessStatusCode)
-			{
-				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(_jsonOptions);
-				var tumGecmis = result?.Veri ?? new List<Emanet>();
-
-				// 2. Sadece şu an elinde olan (İade edilmemiş) malzemeleri filtrele ve grupla
-				// Bir kullanıcı farklı zamanlarda 2 tane ve 3 tane "Kask" almış olabilir.
-				// Kullanıcıya toplam "5 Kaskın var, kaçını iade edeceksin?" demeliyiz.
-
-				var kullaniciEnvanteri = tumGecmis
-					.Where(e => e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi)
-					.SelectMany(e => e.EmanetDetaylari)
-					.GroupBy(d => d.MalzemeId)
-					.Select(g => new
-					{
-						MalzemeId = g.Key,
-						MalzemeAdi = g.First().Malzeme.Ad, // Malzeme nesnesi dolu gelmeli
-						MalzemeGorsel = g.First().Malzeme.GorselYolu,
-						ToplamAdet = g.Sum(x => x.AlinanAdet - x.IadeEdilenAdet)
-					})
-					.Where(x => x.ToplamAdet > 0) // Elinde kalmayanları gizle
-					.ToList();
-
-				// Bunu View'a taşımak için dinamik veya özel bir ViewModel kullanabiliriz.
-				// Hızlı çözüm için ViewBag veya yeni bir ViewModel öneririm.
-				return View(kullaniciEnvanteri);
-			}
-
-			return View(new List<object>()); // Hata durumu
-		}
-
-		// İade Talebi Gönder (Post)
-		[HttpPost]
-		public async Task<IActionResult> IadeTalepEt([FromBody] EmanetIadeTalepDto dto)
-		{
-			var client = CreateClient();
-			var response = await client.PostAsJsonAsync("api/emanetler/iade-talep", dto);
+			// İlgili emanet kaydını API'den çek
+			var response = await client.GetAsync($"api/emanetler/{id}");
 
 			if (response.IsSuccessStatusCode)
 			{
 				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(_jsonOptions);
-				return Json(new { success = result?.BasariliMi, message = result?.Mesaj });
+				var emanet = result?.Veri;
+
+				if (emanet != null)
+				{
+					// Güvenlik: Kullanıcı sadece kendi emanetini veya Admin ise herkesinkini görebilir
+					var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+					bool isAdmin = User.IsInRole("Admin") || User.IsInRole("Malzemeci");
+
+					if (!isAdmin && emanet.UyeId.ToString() != userId)
+					{
+						return RedirectToAction("ErisimEngellendi", "Account");
+					}
+
+					// View'in beklediği modeli doldur
+					var model = new EmanetIadeViewModel
+					{
+						EmanetId = emanet.Id,
+						Emanet = emanet
+					};
+					return View(model);
+				}
 			}
 
-			// Hata mesajını okumaya çalış
+			TempData["Hata"] = "Emanet kaydı bulunamadı veya erişim izniniz yok.";
+			return RedirectToAction("Index", "Home");
+		}
+
+		// 2. İADE TALEBİNİ İŞLEYEN METOT (POST)
+		[HttpPost]
+		public async Task<IActionResult> IadeTalep(EmanetIadeViewModel model)
+		{
+			// Seçilen malzemeleri DTO'ya dönüştür
+			var dto = new EmanetIadeTalepDto
+			{
+				IadeEdilecekler = model.IadeAdetleri
+					.Where(x => x.Value > 0)
+					.Select(x => new EmanetSepetItemDto { MalzemeId = x.Key, Adet = x.Value })
+					.ToList()
+			};
+
+			if (!dto.IadeEdilecekler.Any())
+			{
+				TempData["Hata"] = "Lütfen iade edilecek en az bir malzeme ve miktar seçiniz.";
+				return RedirectToAction("IadeEt", new { id = model.EmanetId });
+			}
+
 			try
 			{
-				var errResult = await response.Content.ReadFromJsonAsync<ServiceResult<object>>(_jsonOptions);
-				return Json(new { success = false, message = errResult?.Mesaj ?? "İşlem başarısız." });
+				var client = CreateClient();
+				// API'deki iade talep endpoint'ine gönder
+				var response = await client.PostAsJsonAsync("api/emanetler/iade-talep", dto);
+
+				if (response.IsSuccessStatusCode)
+				{
+					var result = await response.Content.ReadFromJsonAsync<ServiceResult<Emanet>>(_jsonOptions);
+					if (result != null && result.BasariliMi)
+					{
+						TempData["Basari"] = "İade talebiniz başarıyla oluşturuldu. Yönetici onayı bekleniyor.";
+						return RedirectToAction("Profil", "Kullanici");
+					}
+					TempData["Hata"] = result?.Mesaj ?? "İşlem başarısız.";
+				}
+				else
+				{
+					TempData["Hata"] = "Sunucu hatası: " + response.StatusCode;
+				}
 			}
-			catch
+			catch (Exception ex)
 			{
-				return Json(new { success = false, message = "Sunucu hatası." });
+				TempData["Hata"] = "Bağlantı hatası: " + ex.Message;
 			}
+
+			// Hata durumunda sayfaya geri dön
+			return RedirectToAction("IadeEt", new { id = model.EmanetId });
 		}
 
 		[HttpPost]

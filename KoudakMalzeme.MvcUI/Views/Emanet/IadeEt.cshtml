@@ -1,6 +1,6 @@
 @model KoudakMalzeme.MvcUI.Models.EmanetIadeViewModel
 @{
-	ViewData["Title"] = "İade Al";
+	ViewData["Title"] = "İade Talebi Oluştur";
 }
 
 <div class="container">
@@ -22,12 +22,12 @@
 		</div>
 	</div>
 
-	<form asp-action="IadeAl" method="post">
+	<form asp-action="IadeTalep" method="post">
 		<input type="hidden" asp-for="EmanetId" />
 
 		<div class="card shadow border-0">
 			<div class="card-header bg-light">
-				<h6 class="mb-0">Malzeme Listesi ve İade Girişi</h6>
+				<h6 class="mb-0">İade Edilecek Malzemeleri Seçiniz</h6>
 			</div>
 			<div class="card-body p-0">
 				<table class="table table-striped mb-0">
@@ -69,7 +69,7 @@
 			</div>
 			<div class="card-footer bg-white d-flex justify-content-end gap-2 p-3">
 				<a asp-action="Index" class="btn btn-secondary">İptal</a>
-				<button type="submit" class="btn btn-success">İadeyi Tamamla</button>
+				<button type="submit" class="btn btn-success">İade Talebi Oluştur</button>
 			</div>
 		</div>
 	</form>
