@@ -26,18 +26,15 @@
 					<thead class="table-light">
 						<tr>
 							<th style="cursor: pointer; min-width: 250px;" onclick="sortTable(0)">
-								 Malzeme Adı <i class="fa-solid fa-sort text-muted small ms-1"></i>
+								Malzeme Adı <i class="fa-solid fa-sort text-muted small ms-1"></i>
 							</th>
-
 							<th style="cursor: pointer;" onclick="sortTable(1)">
 								Açıklama <i class="fa-solid fa-sort text-muted small ms-1"></i>
 							</th>
-
-							<th style="cursor: pointer; width: 180px;" onclick="sortTable(2, true)">
+							<th style="cursor: pointer; width: 150px;" onclick="sortTable(2, true)">
 								Stok <i class="fa-solid fa-sort text-muted small ms-1"></i>
 							</th>
-
-							<th style="cursor: pointer; width: 180px;" onclick="sortTable(3)">
+							<th style="cursor: pointer; width: 300px;" onclick="sortTable(3)">
 								Emanet Alanlar <i class="fa-solid fa-sort text-muted small ms-1"></i>
 							</th>
 						</tr>
@@ -45,9 +42,22 @@
 					<tbody>
 						@foreach (var item in Model)
 						{
-							// Emanet durumu: Eğer güncel stok toplamdan azsa, birileri almıştır.
-							bool emanetteVar = item.GuncelStok < item.ToplamStok;
-							int emanettekiAdet = item.ToplamStok - item.GuncelStok;
+							// --- EMANET HESAPLAMA MANTIĞI ---
+							// Sadece elinde malzeme kalan (iade edilmemiş) kayıtları alıyoruz.
+							var aktifEmanetler = item.EmanetGecmisi?
+							.Where(d => d.KalanAdet > 0 && d.Emanet?.Uye != null)
+							.ToList() ?? new List<KoudakMalzeme.Shared.Entities.EmanetDetay>();
+
+							// Kişi bazlı grupluyoruz (Bir kişi aynı malzemeden farklı zamanlarda 2 kere almış olabilir)
+							var alanKisiler = aktifEmanetler
+							.GroupBy(x => x.Emanet.Uye)
+							.Select(g => new
+							{
+								AdSoyad = g.Key.Ad + " " + g.Key.Soyad,
+								ToplamKalan = g.Sum(x => x.KalanAdet), // O kişide toplam kaç tane var
+								Tarih = g.Max(x => x.Emanet.OlusturulmaTarihi) // En son ne zaman almış
+							})
+							.ToList();
 
 							<tr>
 								<td>
@@ -78,16 +88,67 @@
 								</td>
 
 								<td class="text-center">
-									<div data-value="@(emanetteVar ? "1" : "0")">
-										@if (emanetteVar)
+									<div data-value="@alanKisiler.Count">
+										@if (alanKisiler.Any())
 										{
-											<span class="badge bg-warning text-dark">
-												@emanettekiAdet Adet Emanette
-											</span>
+											// İlk 2 ismi virgülle ayırarak göster
+											var gosterilecekIsimler = string.Join(", ", alanKisiler.Take(2).Select(x =>
+											x.AdSoyad));
+											var digerSayisi = alanKisiler.Count - 2;
+
+											<a href="#" class="text-decoration-none text-primary fw-bold" data-bs-toggle="modal"
+												data-bs-target="#modal_@item.Id">
+												@gosterilecekIsimler
+												@if (digerSayisi > 0)
+												{
+													<span class="text-muted ms-1">(+@digerSayisi kişi)</span>
+												}
+											</a>
+
+											<div class="modal fade" id="modal_@item.Id" tabindex="-1" aria-hidden="true">
+												<div class="modal-dialog modal-dialog-centered">
+													<div class="modal-content">
+														<div class="modal-header bg-light">
+															<h5 class="modal-title text-success fw-bold">
+																@item.Ad - Emanet Listesi
+															</h5>
+															<button type="button" class="btn-close" data-bs-dismiss="modal"
+																aria-label="Close"></button>
+														</div>
+														<div class="modal-body p-0">
+															<table class="table table-striped mb-0">
+																<thead>
+																	<tr>
+																		<th>Üye Adı</th>
+																		<th class="text-center">Adet</th>
+																		<th class="text-end">Tarih</th>
+																	</tr>
+																</thead>
+																<tbody>
+																	@foreach (var kisi in alanKisiler)
+																	{
+																		<tr>
+																			<td class="text-start ps-3">@kisi.AdSoyad</td>
+																			<td class="text-center fw-bold">@kisi.ToplamKalan</td>
+																			<td class="text-end pe-3 small text-muted">
+																				@kisi.Tarih.ToShortDateString()
+																			</td>
+																		</tr>
+																	}
+																</tbody>
+															</table>
+														</div>
+														<div class="modal-footer">
+															<button type="button" class="btn btn-secondary btn-sm"
+																data-bs-dismiss="modal">Kapat</button>
+														</div>
+													</div>
+												</div>
+											</div>
 										}
 										else
 										{
-											<span class="fs-5 fw-bold text-muted">-</span>
+											<span class="text-muted">-</span>
 										}
 									</div>
 								</td>
@@ -109,12 +170,11 @@
 
 @section Scripts {
 	<script>
-		// --- ANLIK ARAMA (Büyük/Küçük Harf Duyarsız) ---
+		// --- ANLIK ARAMA ---
 		$(document).ready(function () {
 			$("#searchInput").on("keyup", function () {
 				var value = $(this).val().toLowerCase();
 				$("#malzemeTable tbody tr").filter(function () {
-					// Sadece ilk sütun (İsim) içinde arama yap
 					var text = $(this).find("td:eq(0)").text().toLowerCase();
 					$(this).toggle(text.indexOf(value) > -1)
 				});
@@ -131,18 +191,15 @@
 			while (switching) {
 				switching = false;
 				rows = table.rows;
-
 				for (i = 1; i < (rows.length - 1); i++) {
 					shouldSwitch = false;
 					x = rows[i].getElementsByTagName("TD")[n];
 					y = rows[i + 1].getElementsByTagName("TD")[n];
 
-					// Hücre değerini al (Varsa data-value, yoksa text)
 					var xVal = x.querySelector('[data-value]') ? x.querySelector('[data-value]').getAttribute('data-value') : x.innerText.trim().toLowerCase();
 					var yVal = y.querySelector('[data-value]') ? y.querySelector('[data-value]').getAttribute('data-value') : y.innerText.trim().toLowerCase();
 
 					if (isNumber) {
-						// "10 (5)" formatından sadece baştaki sayıyı al (10)
 						var xNum = parseInt(xVal.split(' ')[0]) || 0;
 						var yNum = parseInt(yVal.split(' ')[0]) || 0;
 

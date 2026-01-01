@@ -16,12 +16,14 @@
 				<p class="badge bg-dark mb-4">@Model.Kullanici.Rol</p>
 
 				<ul class="list-group list-group-flush text-start">
-					<li class="list-group-item"><i class="fa-solid fa-envelope text-success me-2"></i>
-						@Model.Kullanici.Email</li>
-					<li class="list-group-item"><i class="fa-solid fa-phone text-success me-2"></i>
-						@Model.Kullanici.Telefon</li>
-					<li class="list-group-item"><i class="fa-solid fa-calendar text-success me-2"></i> Kayıt:
-						@Model.Kullanici.OlusturulmaTarihi.ToString("dd.MM.yyyy")</li>
+					<li class="list-group-item">
+						<i class="fa-solid fa-envelope text-success me-2"></i>
+						@Model.Kullanici.Email
+					</li>
+					<li class="list-group-item">
+						<i class="fa-solid fa-phone text-success me-2"></i>
+						@Model.Kullanici.Telefon
+					</li>
 				</ul>
 
 				@if (Model.KendiProfiliMi)
@@ -45,7 +47,9 @@
 	<div class="col-md-8">
 		<div class="card shadow border-0 mb-4">
 			<div class="card-header bg-warning text-dark border-bottom-0 pt-3 pb-2">
-				<h5 class="fw-bold mb-0"><i class="fa-solid fa-hand-holding-box me-2"></i> Zimmetindeki Malzemeler</h5>
+				<h5 class="fw-bold mb-0">
+					<i class="fa-solid fa-hand-holding-box me-2"></i> Zimmetindeki Malzemeler
+				</h5>
 			</div>
 			<div class="card-body p-0">
 				@if (Model.AktifZimmetListesi.Count > 0)
@@ -99,7 +103,8 @@
 							<thead class="table-light">
 								<tr>
 									<th>Emanet No</th>
-									<th>Tarih</th>
+									<th>Alış Tarihi</th>
+									<th>İade Tarihi</th>
 									<th>İçerik</th>
 									<th>Durum</th>
 									<th> </th>
@@ -110,7 +115,21 @@
 								{
 									<tr>
 										<td><small class="text-muted">#@emanet.Id</small></td>
+
 										<td>@emanet.TeslimAlmaTarihi.ToString("dd.MM.yyyy")</td>
+
+										<td>
+											@if (emanet.IadeTarihi.HasValue)
+											{
+												<span
+													class="text-success fw-bold">@emanet.IadeTarihi.Value.ToString("dd.MM.yyyy")</span>
+											}
+											else
+											{
+												<span class="text-muted fw-bold">-</span>
+											}
+										</td>
+
 										<td>
 											<ul class="list-unstyled mb-0 small">
 												@foreach (var detay in emanet.EmanetDetaylari)

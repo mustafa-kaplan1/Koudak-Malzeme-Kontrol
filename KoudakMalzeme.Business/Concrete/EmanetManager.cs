@@ -137,6 +137,14 @@ namespace KoudakMalzeme.Business.Concrete
 					detay.Malzeme.GuncelStok -= detay.AlinanAdet; // Stoktan Düş
 				}
 				emanet.Durum = EmanetDurumu.TeslimEdildi; // Zimmetlendi
+
+				// Alma işleminde onaylayan personeli ve tarihleri işle
+				emanet.VerenPersonelId = dto.PersonelId;
+				if (!string.IsNullOrEmpty(dto.MalzemeciNotu))
+					emanet.MalzemeciNotu = dto.MalzemeciNotu;
+
+				if (dto.PlanlananIadeTarihi.HasValue)
+					emanet.PlanlananIadeTarihi = dto.PlanlananIadeTarihi;
 			}
 			// SENARYO B: Malzeme İade Talebi
 			else if (emanet.Durum == EmanetDurumu.IadeTalepEdildi)
@@ -179,29 +187,18 @@ namespace KoudakMalzeme.Business.Concrete
 							{
 								eskiEmanet.Durum = EmanetDurumu.Tamamlandi;
 								eskiEmanet.IadeTarihi = DateTime.Now;
-								eskiEmanet.AlanPersonelId = dto.PersonelId;
+								eskiEmanet.AlanPersonelId = dto.PersonelId; // İadeyi alan personel
 							}
 						}
 					}
 				}
 
-				// İade talebi kaydını kapat (Bu bir zimmet kaydı değil, talep kaydıydı)
-				emanet.Durum = EmanetDurumu.Tamamlandi;
-				emanet.IadeTarihi = DateTime.Now;
-				emanet.AlanPersonelId = dto.PersonelId;
+				_context.Emanetler.Remove(emanet);
 			}
 			else
 			{
 				return ServiceResult<bool>.Basarisiz("Bu kayıt onaylanabilir bir durumda değil.");
 			}
-
-			// Ortak Bilgiler
-			emanet.VerenPersonelId = dto.PersonelId;
-			if (!string.IsNullOrEmpty(dto.MalzemeciNotu))
-				emanet.MalzemeciNotu = dto.MalzemeciNotu;
-
-			if (dto.PlanlananIadeTarihi.HasValue && emanet.Durum == EmanetDurumu.TeslimEdildi)
-				emanet.PlanlananIadeTarihi = dto.PlanlananIadeTarihi;
 
 			await _context.SaveChangesAsync();
 			return ServiceResult<bool>.Basarili(true, "İşlem başarıyla onaylandı.");
