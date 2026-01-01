@@ -22,7 +22,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			_jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 		}
 
-		// --- YARDIMCI METOT ---
 		private HttpClient CreateClient()
 		{
 			var client = _httpClientFactory.CreateClient("ApiClient");
@@ -34,7 +33,7 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			return client;
 		}
 
-		// 1. EMANET KAYITLARI (LİSTELEME)
+		// EMANET KAYITLARI LİSTELEME
 		[HttpGet]
 		public async Task<IActionResult> Index()
 		{
@@ -60,7 +59,7 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			return View(new List<Emanet>());
 		}
 
-		// 2. MALZEME TALEP ETME (KULLANICI) - "Al" Sayfası
+		// MALZEME TALEP ETME (KULLANICI) - "Al" Sayfası
 		[HttpGet]
 		public async Task<IActionResult> Al()
 		{
@@ -230,32 +229,47 @@ namespace KoudakMalzeme.MvcUI.Controllers
 		}
 
 		[HttpGet]
-		public async Task<IActionResult> IadeVer()
+		public async Task<IActionResult> IadeEt()
 		{
 			var client = CreateClient();
 			var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-			// Kullanıcının kendi emanetlerini çekiyoruz
+			// 1. Kullanıcının elindeki aktif (TeslimEdildi durumundaki) emanetleri çek
+			// Not: API tarafında "api/emanetler/uye/{id}" aktifleri de dönüyor olmalı.
 			var response = await client.GetAsync($"api/emanetler/uye/{userId}");
-
-			// Sadece aktif (TeslimEdildi) olanları ve miktarı 0'dan büyük olanları filtreleyip View'a göndereceğiz
-			// API tüm geçmişi döner, filtrelemeyi burada veya backend'de yapabiliriz.
-			// Kolaylık olsun diye tüm listeyi View'a gönderip orada filtreleyeceğiz veya ViewModel kullanacağız.
 
 			if (response.IsSuccessStatusCode)
 			{
 				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Emanet>>>(_jsonOptions);
-				var tumEmanetler = result?.Veri ?? new List<Emanet>();
+				var tumGecmis = result?.Veri ?? new List<Emanet>();
 
-				// View tarafında daha rahat işlem yapmak için sadece detayları düzleştirip gönderebiliriz
-				// Ancak basitlik adına direkt listeyi gönderelim.
-				return View(tumEmanetler);
+				// 2. Sadece şu an elinde olan (İade edilmemiş) malzemeleri filtrele ve grupla
+				// Bir kullanıcı farklı zamanlarda 2 tane ve 3 tane "Kask" almış olabilir.
+				// Kullanıcıya toplam "5 Kaskın var, kaçını iade edeceksin?" demeliyiz.
+
+				var kullaniciEnvanteri = tumGecmis
+					.Where(e => e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi)
+					.SelectMany(e => e.EmanetDetaylari)
+					.GroupBy(d => d.MalzemeId)
+					.Select(g => new
+					{
+						MalzemeId = g.Key,
+						MalzemeAdi = g.First().Malzeme.Ad, // Malzeme nesnesi dolu gelmeli
+						MalzemeGorsel = g.First().Malzeme.GorselYolu,
+						ToplamAdet = g.Sum(x => x.AlinanAdet - x.IadeEdilenAdet)
+					})
+					.Where(x => x.ToplamAdet > 0) // Elinde kalmayanları gizle
+					.ToList();
+
+				// Bunu View'a taşımak için dinamik veya özel bir ViewModel kullanabiliriz.
+				// Hızlı çözüm için ViewBag veya yeni bir ViewModel öneririm.
+				return View(kullaniciEnvanteri);
 			}
 
-			return View(new List<Emanet>());
+			return View(new List<object>()); // Hata durumu
 		}
 
-		// 2. İade Talebi Gönder (Post)
+		// İade Talebi Gönder (Post)
 		[HttpPost]
 		public async Task<IActionResult> IadeTalepEt([FromBody] EmanetIadeTalepDto dto)
 		{
