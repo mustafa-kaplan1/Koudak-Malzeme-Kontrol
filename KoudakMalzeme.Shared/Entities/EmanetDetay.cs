@@ -11,7 +11,7 @@ namespace KoudakMalzeme.Shared.Entities
 		// Kaç tane aldı? (Örn: 5 Karabina)
 		public int AlinanAdet { get; set; }
 
-		// Kaç tanesini geri getirdi? (Örn: Bugün 3 tanesini getirdi, 2'si kaldı)
+		public int IadeTalepEdilenAdet { get; set; } = 0;
 		public int IadeEdilenAdet { get; set; } = 0;
 
 		// Hesaplanan özellik: Geriye kaç tane kaldı?

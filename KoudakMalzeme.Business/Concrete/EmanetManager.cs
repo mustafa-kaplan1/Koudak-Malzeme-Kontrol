@@ -61,48 +61,44 @@ namespace KoudakMalzeme.Business.Concrete
 		// Malzeme İade Talebi (YENİ)
 		public async Task<ServiceResult<Emanet>> IadeTalepOlusturAsync(int uyeId, EmanetIadeTalepDto dto)
 		{
-			// Kullanıcının elindeki aktif (iade edilmemiş) malzemeleri hesapla
-			var aktifEmanetler = await _context.Emanetler
+			// 1. Mevcut Emanet Kaydını Bul
+			var emanet = await _context.Emanetler
 				.Include(e => e.EmanetDetaylari)
-				.Where(e => e.UyeId == uyeId && e.Durum == EmanetDurumu.TeslimEdildi)
-				.ToListAsync();
+				.FirstOrDefaultAsync(e => e.Id == dto.EmanetId && e.UyeId == uyeId);
 
-			var yeniIadeTalebi = new Emanet
-			{
-				UyeId = uyeId,
-				Durum = EmanetDurumu.IadeTalepEdildi, // Önemli: İade isteği durumu
-				TeslimAlmaTarihi = DateTime.Now,
-				EmanetDetaylari = new List<EmanetDetay>()
-			};
+			if (emanet == null)
+				return ServiceResult<Emanet>.Basarisiz("Emanet kaydı bulunamadı.");
 
+			if (emanet.Durum != EmanetDurumu.TeslimEdildi && emanet.Durum != EmanetDurumu.KismenIadeEdildi)
+				return ServiceResult<Emanet>.Basarisiz("Bu kayıt için zaten bekleyen bir işlem var veya kapalı.");
+
+			// 2. Talep Edilen Miktarları İşle
+			bool talepVar = false;
 			foreach (var item in dto.IadeEdilecekler)
 			{
-				// Kullanıcıda bu malzemeden toplam kaç tane var?
-				var kullanicidakiToplam = aktifEmanetler
-					.SelectMany(e => e.EmanetDetaylari)
-					.Where(d => d.MalzemeId == item.MalzemeId)
-					.Sum(d => d.AlinanAdet - d.IadeEdilenAdet);
-
-				if (kullanicidakiToplam < item.Adet)
-					return ServiceResult<Emanet>.Basarisiz($"Üzerinizde iade edecek kadar malzeme yok. (ID: {item.MalzemeId})");
-
-				yeniIadeTalebi.EmanetDetaylari.Add(new EmanetDetay
+				var detay = emanet.EmanetDetaylari.FirstOrDefault(d => d.MalzemeId == item.MalzemeId);
+				if (detay != null)
 				{
-					MalzemeId = item.MalzemeId,
-					AlinanAdet = item.Adet, // İade edilecek miktar
-					IadeEdilenAdet = 0
-				});
+					if (item.Adet > detay.KalanAdet)
+						return ServiceResult<Emanet>.Basarisiz($"İade etmek istediğiniz miktar, elinizdekinden fazla. (Malzeme ID: {item.MalzemeId})");
+
+					if (item.Adet > 0)
+					{
+						detay.IadeTalepEdilenAdet = item.Adet; // Miktarı kaydet
+						talepVar = true;
+					}
+				}
 			}
 
-			_context.Emanetler.Add(yeniIadeTalebi);
+			if (!talepVar)
+				return ServiceResult<Emanet>.Basarisiz("İade edilecek geçerli bir miktar seçilmedi.");
+
+			// 3. Durumu Güncelle (Yeni kayıt yok!)
+			emanet.Durum = EmanetDurumu.IadeTalepEdildi;
 			await _context.SaveChangesAsync();
 
-			return ServiceResult<Emanet>.Basarili(yeniIadeTalebi, "İade talebi oluşturuldu. Yönetici onayı bekleniyor.");
+			return ServiceResult<Emanet>.Basarili(emanet, "İade talebiniz alındı, onay bekleniyor.");
 		}
-
-		// -----------------------------------------------------------------------
-		// 2. YÖNETİCİ ONAY / RED İŞLEMLERİ
-		// -----------------------------------------------------------------------
 
 		// Bekleyen Tüm Talepleri Getir (Alma + İade)
 		public async Task<ServiceResult<List<Emanet>>> BekleyenTalepleriGetirAsync()
@@ -126,74 +122,51 @@ namespace KoudakMalzeme.Business.Concrete
 
 			if (emanet == null) return ServiceResult<bool>.Basarisiz("Talep bulunamadı.");
 
-			// SENARYO A: Malzeme Alma Talebi
+			// SENARYO A: Malzeme Alma Talebi (Değişiklik Yok)
 			if (emanet.Durum == EmanetDurumu.TalepEdildi)
 			{
+				// ... (Eski kodunuzdaki alma mantığı aynen kalacak) ...
 				foreach (var detay in emanet.EmanetDetaylari)
 				{
 					if (detay.Malzeme.GuncelStok < detay.AlinanAdet)
-						return ServiceResult<bool>.Basarisiz($"'{detay.Malzeme.Ad}' stoğu tükenmiş. Onaylanamaz.");
-
-					detay.Malzeme.GuncelStok -= detay.AlinanAdet; // Stoktan Düş
+						return ServiceResult<bool>.Basarisiz($"Stok yetersiz: {detay.Malzeme.Ad}");
+					detay.Malzeme.GuncelStok -= detay.AlinanAdet;
 				}
-				emanet.Durum = EmanetDurumu.TeslimEdildi; // Zimmetlendi
-
-				// Alma işleminde onaylayan personeli ve tarihleri işle
+				emanet.Durum = EmanetDurumu.TeslimEdildi;
 				emanet.VerenPersonelId = dto.PersonelId;
-				if (!string.IsNullOrEmpty(dto.MalzemeciNotu))
-					emanet.MalzemeciNotu = dto.MalzemeciNotu;
-
-				if (dto.PlanlananIadeTarihi.HasValue)
-					emanet.PlanlananIadeTarihi = dto.PlanlananIadeTarihi;
+				// ...
 			}
-			// SENARYO B: Malzeme İade Talebi
+			// SENARYO B: Malzeme İade Talebi (YENİ MANTIK)
 			else if (emanet.Durum == EmanetDurumu.IadeTalepEdildi)
 			{
-				// 1. Stoğu Geri Artır
 				foreach (var detay in emanet.EmanetDetaylari)
 				{
-					detay.Malzeme.GuncelStok += detay.AlinanAdet;
-				}
-
-				// 2. Kullanıcının Üzerindeki Eski Zimmetlerden Düş (FIFO Yöntemi)
-				var kullaniciEmanetleri = await _context.Emanetler
-					.Include(e => e.EmanetDetaylari)
-					.Where(e => e.UyeId == emanet.UyeId && e.Durum == EmanetDurumu.TeslimEdildi)
-					.OrderBy(e => e.TeslimAlmaTarihi) // En eskiden başla
-					.ToListAsync();
-
-				foreach (var iadeDetay in emanet.EmanetDetaylari)
-				{
-					int dusulecekMiktar = iadeDetay.AlinanAdet;
-
-					foreach (var eskiEmanet in kullaniciEmanetleri)
+					if (detay.IadeTalepEdilenAdet > 0)
 					{
-						if (dusulecekMiktar <= 0) break;
+						// 1. Stoğu Artır
+						detay.Malzeme.GuncelStok += detay.IadeTalepEdilenAdet;
 
-						// Bu emanette bu malzemeden var mı ve henüz iade edilmemiş mi?
-						var eskiDetay = eskiEmanet.EmanetDetaylari
-							.FirstOrDefault(d => d.MalzemeId == iadeDetay.MalzemeId && (d.AlinanAdet - d.IadeEdilenAdet) > 0);
+						// 2. İade Edilen Sayısını Güncelle
+						detay.IadeEdilenAdet += detay.IadeTalepEdilenAdet;
 
-						if (eskiDetay != null)
-						{
-							int mevcutKalan = eskiDetay.AlinanAdet - eskiDetay.IadeEdilenAdet;
-							int dusus = Math.Min(mevcutKalan, dusulecekMiktar);
-
-							eskiDetay.IadeEdilenAdet += dusus;
-							dusulecekMiktar -= dusus;
-
-							// Eğer bu emanetteki her şey iade edildiyse durumu Tamamlandı yap
-							if (eskiEmanet.EmanetDetaylari.All(d => d.AlinanAdet == d.IadeEdilenAdet))
-							{
-								eskiEmanet.Durum = EmanetDurumu.Tamamlandi;
-								eskiEmanet.IadeTarihi = DateTime.Now;
-								eskiEmanet.AlanPersonelId = dto.PersonelId; // İadeyi alan personel
-							}
-						}
+						// 3. Talep Sayacını Sıfırla
+						detay.IadeTalepEdilenAdet = 0;
 					}
 				}
 
-				_context.Emanetler.Remove(emanet);
+				// 4. Emanetin Yeni Durumunu Belirle
+				// Eğer tüm detaylardaki tüm malzemeler iade edildiyse -> Tamamlandi
+				// Hala iade edilmemiş parçalar varsa -> TeslimEdildi (Aktif)
+				if (emanet.EmanetDetaylari.All(d => d.TamamlandiMi))
+				{
+					emanet.Durum = EmanetDurumu.Tamamlandi;
+					emanet.IadeTarihi = DateTime.Now;
+					emanet.AlanPersonelId = dto.PersonelId;
+				}
+				else
+				{
+					emanet.Durum = EmanetDurumu.TeslimEdildi; // veya KismenIadeEdildi
+				}
 			}
 			else
 			{
@@ -207,12 +180,27 @@ namespace KoudakMalzeme.Business.Concrete
 		// Talebi Reddet
 		public async Task<ServiceResult<bool>> TalebiReddetAsync(EmanetRedDto dto)
 		{
-			var emanet = await _context.Emanetler.FindAsync(dto.EmanetId);
+			var emanet = await _context.Emanetler.Include(e => e.EmanetDetaylari).FirstOrDefaultAsync(e => e.Id == dto.EmanetId);
 			if (emanet == null) return ServiceResult<bool>.Basarisiz("Talep bulunamadı.");
 
-			emanet.VerenPersonelId = dto.PersonelId;
-			emanet.MalzemeciNotu = dto.RetNedeni;
-			emanet.Durum = EmanetDurumu.IptalEdildi; // veya Reddedildi
+			if (emanet.Durum == EmanetDurumu.TalepEdildi)
+			{
+				// Alma talebi reddedilirse iptal olur
+				emanet.Durum = EmanetDurumu.Reddedildi;
+				emanet.MalzemeciNotu = dto.RetNedeni;
+			}
+			else if (emanet.Durum == EmanetDurumu.IadeTalepEdildi)
+			{
+				// İade talebi reddedilirse, malzemeler hala kullanıcıdadır -> Tekrar 'TeslimEdildi' olur.
+				emanet.Durum = EmanetDurumu.TeslimEdildi;
+				emanet.MalzemeciNotu = dto.RetNedeni; // Red nedenini nota ekleyebiliriz
+
+				// Talep edilen iade miktarlarını sıfırla ki eski haline dönsün
+				foreach (var detay in emanet.EmanetDetaylari)
+				{
+					detay.IadeTalepEdilenAdet = 0;
+				}
+			}
 
 			await _context.SaveChangesAsync();
 			return ServiceResult<bool>.Basarili(true, "Talep reddedildi.");

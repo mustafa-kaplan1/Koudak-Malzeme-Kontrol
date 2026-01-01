@@ -282,6 +282,7 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			// Seçilen malzemeleri DTO'ya dönüştür
 			var dto = new EmanetIadeTalepDto
 			{
+				EmanetId = model.EmanetId,
 				IadeEdilecekler = model.IadeAdetleri
 					.Where(x => x.Value > 0)
 					.Select(x => new EmanetSepetItemDto { MalzemeId = x.Key, Adet = x.Value })

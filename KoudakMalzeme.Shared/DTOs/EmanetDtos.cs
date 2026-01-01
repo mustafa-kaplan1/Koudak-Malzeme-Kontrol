@@ -51,6 +51,7 @@ namespace KoudakMalzeme.Shared.Dtos
 
 	public class EmanetIadeTalepDto
 	{
+		public int EmanetId { get; set; }
 		public List<EmanetSepetItemDto> IadeEdilecekler { get; set; } = new();
 	}
 }
