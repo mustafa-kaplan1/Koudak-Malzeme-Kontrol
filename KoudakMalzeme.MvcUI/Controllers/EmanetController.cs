@@ -255,7 +255,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 							return RedirectToAction("ErisimEngellendi", "Account");
 						}
 
-						// View'in beklediği modeli doldur
 						var model = new EmanetIadeViewModel
 						{
 							EmanetId = emanet.Id,

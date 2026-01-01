@@ -43,19 +43,23 @@
 						@foreach (var item in Model)
 						{
 							// --- EMANET HESAPLAMA MANTIĞI ---
-							// Sadece elinde malzeme kalan (iade edilmemiş) kayıtları alıyoruz.
+							// 1. Kalan adedi 0'dan büyük olanlar (Hala emanette)
+							// 2. Durumu 'TalepEdildi' OLMAYANLAR (Henüz teslim alınmamışsa listede görünmesin)
 							var aktifEmanetler = item.EmanetGecmisi?
-							.Where(d => d.KalanAdet > 0 && d.Emanet?.Uye != null)
+							.Where(d => d.KalanAdet > 0
+							&& d.Emanet?.Uye != null
+							&& d.Emanet.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.TalepEdildi
+							&& d.Emanet.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.Reddedildi)
 							.ToList() ?? new List<KoudakMalzeme.Shared.Entities.EmanetDetay>();
 
-							// Kişi bazlı grupluyoruz (Bir kişi aynı malzemeden farklı zamanlarda 2 kere almış olabilir)
+							// Kişi bazlı grupluyoruz
 							var alanKisiler = aktifEmanetler
 							.GroupBy(x => x.Emanet.Uye)
 							.Select(g => new
 							{
 								AdSoyad = g.Key.Ad + " " + g.Key.Soyad,
-								ToplamKalan = g.Sum(x => x.KalanAdet), // O kişide toplam kaç tane var
-								Tarih = g.Max(x => x.Emanet.OlusturulmaTarihi) // En son ne zaman almış
+								ToplamKalan = g.Sum(x => x.KalanAdet),
+								Tarih = g.Max(x => x.Emanet.OlusturulmaTarihi)
 							})
 							.ToList();
 
@@ -91,12 +95,12 @@
 									<div data-value="@alanKisiler.Count">
 										@if (alanKisiler.Any())
 										{
-											// İlk 2 ismi virgülle ayırarak göster
 											var gosterilecekIsimler = string.Join(", ", alanKisiler.Take(2).Select(x =>
 											x.AdSoyad));
 											var digerSayisi = alanKisiler.Count - 2;
 
-											<a href="#" class="text-decoration-none text-primary fw-bold" data-bs-toggle="modal"
+											// Link rengi 'text-dark' yapılarak mavi olması engellendi
+											<a href="#" class="text-decoration-none text-dark fw-bold" data-bs-toggle="modal"
 												data-bs-target="#modal_@item.Id">
 												@gosterilecekIsimler
 												@if (digerSayisi > 0)
@@ -104,47 +108,6 @@
 													<span class="text-muted ms-1">(+@digerSayisi kişi)</span>
 												}
 											</a>
-
-											<div class="modal fade" id="modal_@item.Id" tabindex="-1" aria-hidden="true">
-												<div class="modal-dialog modal-dialog-centered">
-													<div class="modal-content">
-														<div class="modal-header bg-light">
-															<h5 class="modal-title text-success fw-bold">
-																@item.Ad - Emanet Listesi
-															</h5>
-															<button type="button" class="btn-close" data-bs-dismiss="modal"
-																aria-label="Close"></button>
-														</div>
-														<div class="modal-body p-0">
-															<table class="table table-striped mb-0">
-																<thead>
-																	<tr>
-																		<th>Üye Adı</th>
-																		<th class="text-center">Adet</th>
-																		<th class="text-end">Tarih</th>
-																	</tr>
-																</thead>
-																<tbody>
-																	@foreach (var kisi in alanKisiler)
-																	{
-																		<tr>
-																			<td class="text-start ps-3">@kisi.AdSoyad</td>
-																			<td class="text-center fw-bold">@kisi.ToplamKalan</td>
-																			<td class="text-end pe-3 small text-muted">
-																				@kisi.Tarih.ToShortDateString()
-																			</td>
-																		</tr>
-																	}
-																</tbody>
-															</table>
-														</div>
-														<div class="modal-footer">
-															<button type="button" class="btn btn-secondary btn-sm"
-																data-bs-dismiss="modal">Kapat</button>
-														</div>
-													</div>
-												</div>
-											</div>
 										}
 										else
 										{
@@ -156,7 +119,6 @@
 						}
 					</tbody>
 				</table>
-
 				@if (Model.Count == 0)
 				{
 					<div class="text-center py-5">
@@ -168,9 +130,85 @@
 	</div>
 </div>
 
+@foreach (var item in Model)
+{
+	// Modal içindeki veriler için de AYNI FİLTREYİ uyguluyoruz
+	var aktifEmanetler = item.EmanetGecmisi?
+	.Where(d => d.KalanAdet > 0
+	&& d.Emanet?.Uye != null
+	&& d.Emanet.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.TalepEdildi
+	&& d.Emanet.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.Reddedildi)
+	.ToList() ?? new List<KoudakMalzeme.Shared.Entities.EmanetDetay>();
+
+	var alanKisiler = aktifEmanetler
+	.GroupBy(x => x.Emanet.Uye)
+	.Select(g => new
+	{
+		UyeBilgi = g.Key,
+		ToplamKalan = g.Sum(x => x.KalanAdet),
+		SonIslemTarihi = g.Max(x => x.Emanet.OlusturulmaTarihi)
+	})
+	.ToList();
+
+	if (alanKisiler.Any())
+	{
+		<div class="modal fade" id="modal_@item.Id" tabindex="-1" aria-hidden="true">
+			<div class="modal-dialog modal-dialog-centered modal-lg">
+				<div class="modal-content">
+					<div class="modal-header bg-light">
+						<h5 class="modal-title text-success fw-bold">
+							<i class="fa-solid fa-users-viewfinder me-2"></i> @item.Ad - Zimmet Listesi
+						</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+					</div>
+					<div class="modal-body p-0">
+						<table class="table table-striped table-hover mb-0">
+							<thead class="table-success">
+								<tr>
+									<th class="ps-4">Üye Bilgileri</th>
+									<th>İletişim</th>
+									<th class="text-center">Zimmet Adedi</th>
+									<th class="text-end pe-4">Veriliş Tarihi</th>
+								</tr>
+							</thead>
+							<tbody>
+								@foreach (var kisi in alanKisiler)
+								{
+									<tr>
+										<td class="ps-4">
+											<span class="fw-bold d-block">@kisi.UyeBilgi.Ad @kisi.UyeBilgi.Soyad</span>
+											<span class="small text-muted">No: @kisi.UyeBilgi.OkulNo</span>
+										</td>
+										<td>
+											<div class="d-flex flex-column small">
+												<span><i class="fa-solid fa-phone text-success me-1"></i>
+													@kisi.UyeBilgi.Telefon</span>
+												<span class="text-muted"><i class="fa-solid fa-envelope me-1"></i>
+													@kisi.UyeBilgi.Email</span>
+											</div>
+										</td>
+										<td class="text-center align-middle">
+											<span class="badge bg-danger rounded-pill px-3">@kisi.ToplamKalan</span>
+										</td>
+										<td class="text-end pe-4 align-middle text-muted">
+											@kisi.SonIslemTarihi.ToString("dd.MM.yyyy HH:mm")
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+					<div class="modal-footer bg-light">
+						<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
+
 @section Scripts {
 	<script>
-		// --- ANLIK ARAMA ---
 		$(document).ready(function () {
 			$("#searchInput").on("keyup", function () {
 				var value = $(this).val().toLowerCase();
@@ -181,7 +219,6 @@
 			});
 		});
 
-		// --- SIRALAMA FONKSİYONU ---
 		function sortTable(n, isNumber = false) {
 			var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
 			table = document.getElementById("malzemeTable");
@@ -202,7 +239,6 @@
 					if (isNumber) {
 						var xNum = parseInt(xVal.split(' ')[0]) || 0;
 						var yNum = parseInt(yVal.split(' ')[0]) || 0;
-
 						if (dir == "asc") { if (xNum > yNum) { shouldSwitch = true; break; } }
 						else { if (xNum < yNum) { shouldSwitch = true; break; } }
 					} else {
@@ -210,7 +246,6 @@
 						else { if (xVal < yVal) { shouldSwitch = true; break; } }
 					}
 				}
-
 				if (shouldSwitch) {
 					rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
 					switching = true;

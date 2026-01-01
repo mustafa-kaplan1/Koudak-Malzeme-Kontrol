@@ -96,7 +96,8 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 					model.AktifZimmetListesi = model.Emanetler
 						.Where(e => e.Durum == Shared.Enums.EmanetDurumu.TeslimEdildi ||
-									e.Durum == Shared.Enums.EmanetDurumu.KismenIadeEdildi) // Sadece teslim edilenleri göster
+									e.Durum == Shared.Enums.EmanetDurumu.KismenIadeEdildi ||
+									e.Durum == Shared.Enums.EmanetDurumu.IadeTalepEdildi)
 						.SelectMany(e => e.EmanetDetaylari.Select(d => new AktifZimmetOzetViewModel
 						{
 							MalzemeAdi = d.Malzeme?.Ad ?? "Bilinmeyen",

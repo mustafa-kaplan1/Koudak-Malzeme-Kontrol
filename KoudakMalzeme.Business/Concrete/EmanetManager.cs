@@ -155,8 +155,6 @@ namespace KoudakMalzeme.Business.Concrete
 				}
 
 				// 4. Emanetin Yeni Durumunu Belirle
-				// Eğer tüm detaylardaki tüm malzemeler iade edildiyse -> Tamamlandi
-				// Hala iade edilmemiş parçalar varsa -> TeslimEdildi (Aktif)
 				if (emanet.EmanetDetaylari.All(d => d.TamamlandiMi))
 				{
 					emanet.Durum = EmanetDurumu.Tamamlandi;
@@ -165,7 +163,14 @@ namespace KoudakMalzeme.Business.Concrete
 				}
 				else
 				{
-					emanet.Durum = EmanetDurumu.TeslimEdildi; // veya KismenIadeEdildi
+					if (emanet.EmanetDetaylari.Any(d => d.IadeEdilenAdet > 0))
+					{
+						emanet.Durum = EmanetDurumu.KismenIadeEdildi;
+					}
+					else
+					{
+						emanet.Durum = EmanetDurumu.TeslimEdildi;
+					}
 				}
 			}
 			else
