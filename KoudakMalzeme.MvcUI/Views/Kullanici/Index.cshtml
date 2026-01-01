@@ -41,10 +41,10 @@
 					<tbody>
 						@foreach (var user in Model)
 						{
-							// Aktif zimmetleri hesapla (Tamamlandı ve İptal Edildi haricindekiler)
 							var aktifEmanetler = user.AldigiEmanetler?
-							.Where(e => e.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.Tamamlandi &&
-							e.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.IptalEdildi)
+							.Where(e => e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi ||
+							e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.KismenIadeEdildi ||
+							e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.IadeTalepEdildi)
 							.SelectMany(e => e.EmanetDetaylari)
 							.ToList();
 

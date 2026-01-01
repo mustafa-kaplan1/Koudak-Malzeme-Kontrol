@@ -157,7 +157,8 @@
 											}
 										</td>
 										<td>
-											@if (emanet.Durum != KoudakMalzeme.Shared.Enums.EmanetDurumu.Tamamlandi)
+											@if (emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi ||
+																				emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.KismenIadeEdildi)
 											{
 												if (Model.KendiProfiliMi || User.IsInRole("Admin") || User.IsInRole("Malzemeci"))
 												{

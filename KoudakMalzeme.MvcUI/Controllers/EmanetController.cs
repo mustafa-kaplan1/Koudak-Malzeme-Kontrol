@@ -244,22 +244,30 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 				if (emanet != null)
 				{
-					// Güvenlik: Kullanıcı sadece kendi emanetini veya Admin ise herkesinkini görebilir
-					var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-					bool isAdmin = User.IsInRole("Admin") || User.IsInRole("Malzemeci");
-
-					if (!isAdmin && emanet.UyeId.ToString() != userId)
+					if (emanet.Durum != EmanetDurumu.TeslimEdildi || emanet.Durum != EmanetDurumu.KismenIadeEdildi)
 					{
-						return RedirectToAction("ErisimEngellendi", "Account");
+
+						var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+						bool isAdmin = User.IsInRole("Admin") || User.IsInRole("Malzemeci");
+
+						if (!isAdmin && emanet.UyeId.ToString() != userId)
+						{
+							return RedirectToAction("ErisimEngellendi", "Account");
+						}
+
+						// View'in beklediği modeli doldur
+						var model = new EmanetIadeViewModel
+						{
+							EmanetId = emanet.Id,
+							Emanet = emanet
+						};
+						return View(model);
 					}
-
-					// View'in beklediği modeli doldur
-					var model = new EmanetIadeViewModel
+					else
 					{
-						EmanetId = emanet.Id,
-						Emanet = emanet
-					};
-					return View(model);
+						TempData["Hata"] = "Bu kayıt iade edilebilir durumda değil (Onay bekliyor veya kapanmış).";
+						return RedirectToAction("Profil", "Kullanici");
+					}
 				}
 			}
 
