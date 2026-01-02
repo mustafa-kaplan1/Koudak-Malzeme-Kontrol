@@ -122,6 +122,26 @@ namespace KoudakMalzeme.Business.Concrete
 
 			if (emanet == null) return ServiceResult<bool>.Basarisiz("Talep bulunamadı.");
 
+			if (!string.IsNullOrWhiteSpace(dto.MalzemeciNotu))
+			{
+				// İşlemi yapan personeli bulalım
+				var personel = await _context.Kullanicilar.FindAsync(dto.PersonelId);
+				string personelAd = personel != null ? $"{personel.Ad} {personel.Soyad}" : "Yetkili";
+
+				// İstenen Format: Ad Soyad [Tarih]: "Not"
+				string yeniNotGirisi = $"{personelAd} [{DateTime.Now:dd.MM.yyyy HH:mm}]: \"{dto.MalzemeciNotu}\"";
+
+				if (string.IsNullOrEmpty(emanet.MalzemeciNotu))
+				{
+					emanet.MalzemeciNotu = yeniNotGirisi;
+				}
+				else
+				{
+					// Yeni satıra ekle
+					emanet.MalzemeciNotu += "\n" + yeniNotGirisi;
+				}
+			}
+
 			// SENARYO A: Malzeme Alma Talebi (Değişiklik Yok)
 			if (emanet.Durum == EmanetDurumu.TalepEdildi)
 			{

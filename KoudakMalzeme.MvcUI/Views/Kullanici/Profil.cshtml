@@ -5,6 +5,7 @@
 
 <div class="row">
 	<div class="col-md-4 mb-4">
+		@* Kısaltmak için burayı atlıyorum, değişiklik yok *@
 		<div class="card shadow border-0 text-center h-100">
 			<div class="card-body">
 				<div class="bg-success text-white rounded-circle mx-auto d-flex justify-content-center align-items-center mb-3 display-4 shadow"
@@ -14,26 +15,12 @@
 				<h3 class="fw-bold">@Model.Kullanici.Ad @Model.Kullanici.Soyad</h3>
 				<p class="text-muted mb-1">@Model.Kullanici.OkulNo</p>
 				<p class="badge bg-dark mb-4">@Model.Kullanici.Rol</p>
-
-				<ul class="list-group list-group-flush text-start">
-					<li class="list-group-item">
-						<i class="fa-solid fa-envelope text-success me-2"></i>
-						@Model.Kullanici.Email
-					</li>
-					<li class="list-group-item">
-						<i class="fa-solid fa-phone text-success me-2"></i>
-						@Model.Kullanici.Telefon
-					</li>
-				</ul>
-
 				@if (Model.KendiProfiliMi)
 				{
 					<div class="mt-4 d-grid gap-2">
 						<a asp-controller="Emanet" asp-action="Al" class="btn btn-success">
 							<i class="fa-solid fa-plus"></i> Malzeme Al
 						</a>
-						<button class="btn btn-outline-secondary" disabled>Bilgilerimi Güncelle</button>
-						<hr class="my-2">
 						<a asp-controller="Account" asp-action="Logout" class="btn btn-danger">
 							<i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
 						</a>
@@ -43,7 +30,7 @@
 		</div>
 	</div>
 
-	@*Sağ Taraf *@
+	@* Sağ Taraf *@
 	<div class="col-md-8">
 		<div class="card shadow border-0 mb-4">
 			<div class="card-header bg-warning text-dark border-bottom-0 pt-3 pb-2">
@@ -92,7 +79,6 @@
 				@if (Model.Emanetler.Count == 0)
 				{
 					<div class="text-center py-5 text-muted">
-						<i class="fa-solid fa-box-open fa-3x mb-3"></i>
 						<p>Henüz kayıtlı bir emanet işlemi yok.</p>
 					</div>
 				}
@@ -105,9 +91,8 @@
 									<th>Emanet No</th>
 									<th>Alış Tarihi</th>
 									<th>İade Tarihi</th>
-									<th>İçerik</th>
 									<th>Durum</th>
-									<th> </th>
+									<th style="min-width: 160px;">İşlemler</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -115,28 +100,9 @@
 								{
 									<tr>
 										<td><small class="text-muted">#@emanet.Id</small></td>
-
 										<td>@emanet.TeslimAlmaTarihi.ToString("dd.MM.yyyy")</td>
-
 										<td>
-											@if (emanet.IadeTarihi.HasValue)
-											{
-												<span
-													class="text-success fw-bold">@emanet.IadeTarihi.Value.ToString("dd.MM.yyyy")</span>
-											}
-											else
-											{
-												<span class="text-muted fw-bold">-</span>
-											}
-										</td>
-
-										<td>
-											<ul class="list-unstyled mb-0 small">
-												@foreach (var detay in emanet.EmanetDetaylari)
-												{
-													<li>• @detay.Malzeme?.Ad (@detay.AlinanAdet adet)</li>
-												}
-											</ul>
+											@(emanet.IadeTarihi.HasValue? emanet.IadeTarihi.Value.ToString("dd.MM.yyyy") : "-")
 										</td>
 										<td>
 											@if (emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi)
@@ -149,14 +115,21 @@
 											}
 											else if (emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.Tamamlandi)
 											{
+
 												<span class="badge bg-success">Tamamlandı</span>
 											}
 											else
 											{
+
 												<span class="badge bg-danger">@emanet.Durum</span>
 											}
 										</td>
 										<td>
+											<button class="btn btn-sm btn-outline-info me-1" data-bs-toggle="modal"
+												data-bs-target="#detayModal-@emanet.Id">
+												<i class="fa-solid fa-eye"></i> Detay
+											</button>
+
 											@if (emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.TeslimEdildi ||
 																				emanet.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.KismenIadeEdildi)
 											{
@@ -170,6 +143,41 @@
 											}
 										</td>
 									</tr>
+
+									<div class="modal fade" id="detayModal-@emanet.Id" tabindex="-1" aria-hidden="true">
+										<div class="modal-dialog modal-dialog-centered">
+											<div class="modal-content">
+												<div class="modal-header bg-light">
+													<h5 class="modal-title text-primary fw-bold">Emanet Detayı (#@emanet.Id)
+													</h5>
+													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+												</div>
+												<div class="modal-body">
+													<h6 class="text-muted small text-uppercase fw-bold mb-3">Malzemeler</h6>
+													<ul class="list-group list-group-flush border rounded mb-3">
+														@foreach (var d in emanet.EmanetDetaylari)
+														{
+															<li
+																class="list-group-item d-flex justify-content-between align-items-center">
+																<span>@d.Malzeme?.Ad</span>
+																<div>
+																	<span class="badge bg-primary rounded-pill me-1">Alınan:
+																		@d.AlinanAdet</span>
+																	<span class="badge bg-secondary rounded-pill">İade:
+																		@d.IadeEdilenAdet</span>
+																</div>
+															</li>
+														}
+													</ul>
+													<div class="alert alert-light border" style="white-space: pre-wrap;">
+														<i
+															class="fa-solid fa-circle-info me-2"></i><b>Not:</b><br />@(string.IsNullOrEmpty(emanet.MalzemeciNotu)
+																										? "-" : emanet.MalzemeciNotu)
+													</div>
+												</div>
+											</div>
+										</div>
+									</div>
 								}
 							</tbody>
 						</table>

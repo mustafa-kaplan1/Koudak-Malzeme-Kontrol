@@ -4,7 +4,6 @@
 }
 
 <h2 class="mb-4 text-primary"><i class="fa-solid fa-list-check"></i> Emanet Kayıtları</h2>
-
 <div class="card shadow-sm">
 	<div class="card-body">
 		<div class="table-responsive">
@@ -68,25 +67,36 @@
 			<div class="modal-content">
 				<div class="modal-header bg-light">
 					<h5 class="modal-title text-primary fw-bold">
-						<i class="fa-solid fa-file-invoice me-2"></i>Emanet Detayı
+						<i class="fa-solid fa-file-invoice me-2"></i>Emanet Detayı (#@item.Id)
 					</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
-					<h6 class="text-muted small text-uppercase fw-bold mb-3">Verilen Malzemeler</h6>
+					<h6 class="text-muted small text-uppercase fw-bold mb-3">Malzeme Durumu</h6>
 					<ul class="list-group list-group-flush border rounded mb-3">
 						@foreach (var d in item.EmanetDetaylari)
 						{
 							<li class="list-group-item d-flex justify-content-between align-items-center">
 								<span>@d.Malzeme.Ad</span>
-								<span class="badge bg-primary rounded-pill">@d.AlinanAdet Adet</span>
+								<div>
+									<span class="badge bg-primary rounded-pill me-1">Alınan: @d.AlinanAdet</span>
+									@if (d.IadeEdilenAdet > 0)
+									{
+										<span class="badge bg-success rounded-pill">İade: @d.IadeEdilenAdet</span>
+									}
+									else
+									{
+										<span class="badge bg-secondary rounded-pill">İade: 0</span>
+									}
+								</div>
 							</li>
 						}
 					</ul>
 
-					<div class="alert alert-secondary mb-0">
-						<i class="fa-solid fa-circle-info me-2"></i>
-						<b>Malzemeci Notu:</b> @(item.MalzemeciNotu ?? "Not girilmemiş.")
+					<div class="alert alert-secondary mb-0" style="white-space: pre-wrap;">
+						<i class="fa-solid fa-circle-info me-2"></i><b>Malzemeci
+							Notu:</b><br />@(string.IsNullOrEmpty(item.MalzemeciNotu) ? "Not girilmemiş." :
+											item.MalzemeciNotu)
 					</div>
 				</div>
 				<div class="modal-footer bg-light">
