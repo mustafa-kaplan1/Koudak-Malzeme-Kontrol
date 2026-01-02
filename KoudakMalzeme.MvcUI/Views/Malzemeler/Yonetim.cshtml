@@ -1,0 +1,172 @@
+@model List<KoudakMalzeme.Shared.Entities.Malzeme>
+@{
+	ViewData["Title"] = "Malzeme Yönetimi";
+}
+
+<div class="container-fluid">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<div>
+			<h2 class="text-success fw-bold"><i class="fa-solid fa-boxes-stacked"></i> Malzeme Yönetimi</h2>
+			<p class="text-muted mb-0">Envanterdeki malzemeleri düzenleyin, stok güncelleyin veya silin.</p>
+		</div>
+		<div class="d-flex gap-2">
+			<button class="btn btn-outline-success">
+				<i class="fa-solid fa-file-excel me-1"></i> Excel ile Ekle
+			</button>
+			<a asp-action="Ekle" class="btn btn-success">
+				<i class="fa-solid fa-plus me-1"></i> Malzeme Ekle
+			</a>
+		</div>
+	</div>
+
+	<div class="card shadow-sm border-0 mb-4">
+		<div class="card-body">
+			<div class="row g-3 align-items-center">
+				<div class="col-md-6">
+					<button id="btnMalzemeSil" class="btn btn-danger disabled" onclick="malzemeSil()">
+						<i class="fa-solid fa-trash-can me-1"></i> Seçilenleri Sil (<span
+							id="secilenMalzemeSayisi">0</span>)
+					</button>
+				</div>
+				<div class="col-md-6">
+					<div class="input-group">
+						<span class="input-group-text bg-white border-end-0"><i
+								class="fa-solid fa-search text-muted"></i></span>
+						<input type="text" id="searchMalzeme" class="form-control border-start-0"
+							placeholder="Malzeme adı veya açıklama ara..." autocomplete="off">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="card shadow-sm border-0">
+		<div class="card-body p-0">
+			<div class="table-responsive">
+				<table class="table table-hover align-middle mb-0" id="malzemeTable">
+					<thead class="table-light">
+						<tr>
+							<th style="width: 40px;" class="text-center">
+								<input type="checkbox" class="form-check-input" id="selectAllMalzeme">
+							</th>
+							<th>Malzeme</th>
+							<th>Açıklama</th>
+							<th class="text-center">Stok</th>
+							<th class="text-end" style="min-width: 120px;">İşlemler</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var item in Model)
+						{
+							<tr>
+								<td class="text-center">
+									<input type="checkbox" class="form-check-input malzeme-select" value="@item.Id">
+								</td>
+								<td>
+									<div class="d-flex align-items-center">
+										@if (!string.IsNullOrEmpty(item.GorselYolu))
+										{
+											<img src="@item.GorselYolu" class="rounded border me-3"
+												style="width: 40px; height: 40px; object-fit: cover;"
+												onerror="this.src='https://placehold.co/40x40?text=K';" />
+										}
+										else
+										{
+											<div class="rounded bg-light border d-flex align-items-center justify-content-center me-3"
+												style="width: 40px; height: 40px;">
+												<i class="fa-solid fa-cube text-secondary"></i>
+											</div>
+										}
+										<span class="fw-bold">@item.Ad</span>
+									</div>
+								</td>
+								<td class="text-muted small">@item.Aciklama</td>
+								<td class="text-center">
+									<span class="badge bg-light text-dark border">
+										@item.GuncelStok / @item.ToplamStok
+									</span>
+								</td>
+								<td class="text-end">
+									<a asp-action="Duzenle" asp-route-id="@item.Id" class="btn btn-sm btn-primary">
+										<i class="fa-solid fa-pen-to-square"></i> Düzenle
+									</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@if (Model.Count == 0)
+				{
+					<div class="text-center py-5">
+						<p class="text-muted">Listelenecek malzeme yok.</p>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script>
+		// --- ARAMA ---
+		$("#searchMalzeme").on("keyup", function () {
+			var value = $(this).val().toLowerCase();
+			$("#malzemeTable tbody tr").filter(function () {
+				$(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+			});
+		});
+
+		// --- CHECKBOX ---
+		$("#selectAllMalzeme").change(function () {
+			$(".malzeme-select").prop('checked', $(this).prop("checked"));
+			updateMalzemeButtons();
+		});
+
+		$(".malzeme-select").change(function () {
+			updateMalzemeButtons();
+			if (false == $(this).prop("checked")) {
+				$("#selectAllMalzeme").prop('checked', false);
+			}
+		});
+
+		function updateMalzemeButtons() {
+			var count = $(".malzeme-select:checked").length;
+			$("#secilenMalzemeSayisi").text(count);
+			if (count > 0) {
+				$("#btnMalzemeSil").removeClass("disabled");
+			} else {
+				$("#btnMalzemeSil").addClass("disabled");
+			}
+		}
+
+		// --- SİLME ---
+		function malzemeSil() {
+			var selectedIds = $(".malzeme-select:checked").map(function () {
+				return parseInt($(this).val());
+			}).get();
+
+			if (selectedIds.length === 0) return;
+
+			if (confirm(selectedIds.length + " malzemeyi silmek üzeresiniz. Emin misiniz?")) {
+
+				$.ajax({
+					url: '/Malzemeler/TopluSil',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(selectedIds),
+					success: function (res) {
+						if (res.success) {
+							alert(res.message);
+							location.reload();
+						} else {
+							alert("Hata: " + res.message);
+						}
+					},
+					error: function () {
+						alert("İşlem sırasında bir hata oluştu.");
+					}
+				});
+			}
+		}
+	</script>
+}

@@ -1,0 +1,178 @@
+@model List<KoudakMalzeme.Shared.Entities.Kullanici>
+@{
+	ViewData["Title"] = "Üye Yönetimi";
+}
+
+<div class="container-fluid">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<div>
+			<h2 class="text-success fw-bold"><i class="fa-solid fa-users-gear"></i> Üye Yönetimi</h2>
+			<p class="text-muted mb-0">Kulüp üyelerini düzenleyin, silin veya yeni üye ekleyin.</p>
+		</div>
+		<div class="d-flex gap-2">
+			<button class="btn btn-outline-success">
+				<i class="fa-solid fa-file-excel me-1"></i> Excel ile Ekle
+			</button>
+			<a asp-action="Ekle" class="btn btn-success">
+				<i class="fa-solid fa-user-plus me-1"></i> Yeni Üye Ekle
+			</a>
+		</div>
+	</div>
+
+	<div class="card shadow-sm border-0 mb-4">
+		<div class="card-body">
+			<div class="row g-3 align-items-center">
+				<div class="col-md-6">
+					<button id="btnTopluSil" class="btn btn-danger disabled" onclick="topluSil()">
+						<i class="fa-solid fa-trash-can me-1"></i> Seçilenleri Sil (<span id="secilenSayisi">0</span>)
+					</button>
+				</div>
+				<div class="col-md-6">
+					<div class="input-group">
+						<span class="input-group-text bg-white border-end-0"><i
+								class="fa-solid fa-search text-muted"></i></span>
+						<input type="text" id="searchInput" class="form-control border-start-0"
+							placeholder="İsim, Okul No veya Rol ile ara..." autocomplete="off">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="card shadow-sm border-0">
+		<div class="card-body p-0">
+			<div class="table-responsive">
+				<table class="table table-hover align-middle mb-0" id="kullaniciTable">
+					<thead class="table-light">
+						<tr>
+							<th style="width: 40px;" class="text-center">
+								<input type="checkbox" class="form-check-input" id="selectAll">
+							</th>
+							<th style="cursor: pointer;" onclick="sortTable(1)">Ad Soyad <i
+									class="fa-solid fa-sort text-muted small"></i></th>
+							<th style="cursor: pointer;" onclick="sortTable(2)">Okul No <i
+									class="fa-solid fa-sort text-muted small"></i></th>
+							<th style="cursor: pointer;" onclick="sortTable(3)">Rol <i
+									class="fa-solid fa-sort text-muted small"></i></th>
+							<th class="text-end" style="min-width: 120px;">İşlemler</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var user in Model)
+						{
+							<tr>
+								<td class="text-center">
+									<input type="checkbox" class="form-check-input user-select" value="@user.Id">
+								</td>
+								<td>
+									<div class="d-flex align-items-center">
+										<div class="bg-light text-success rounded-circle d-flex justify-content-center align-items-center me-3 border"
+											style="width: 35px; height: 35px; font-weight: bold;">
+											@(user.Ad.Length > 0 ? user.Ad[0] : '?')
+										</div>
+										<div class="d-flex flex-column">
+											<span class="fw-bold">@user.Ad @user.Soyad</span>
+											<small class="text-muted">@user.Email</small>
+										</div>
+									</div>
+								</td>
+								<td class="fw-bold text-secondary">@user.OkulNo</td>
+								<td>
+									@if (user.Rol == KoudakMalzeme.Shared.Enums.KullaniciRolu.Admin)
+									{
+										<span class="badge bg-danger">Yönetici</span>
+									}
+									else if (user.Rol == KoudakMalzeme.Shared.Enums.KullaniciRolu.Malzemeci)
+									{
+										<span class="badge bg-warning text-dark">Malzemeci</span>
+									}
+									else
+									{
+										<span class="badge bg-secondary">Üye</span>
+									}
+								</td>
+								<td class="text-end">
+									<a asp-action="Duzenle" asp-route-id="@user.Id" class="btn btn-sm btn-primary">
+										<i class="fa-solid fa-pen-to-square"></i> Düzenle
+									</a>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+				@if (Model.Count == 0)
+				{
+					<div class="text-center py-5">
+						<p class="text-muted">Listelenecek üye yok.</p>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script>
+		// --- ARAMA ---
+		$("#searchInput").on("keyup", function () {
+			var value = $(this).val().toLowerCase();
+			$("#kullaniciTable tbody tr").filter(function () {
+				$(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+			});
+		});
+
+		// --- CHECKBOX YÖNETİMİ ---
+		$("#selectAll").change(function () {
+			$(".user-select").prop('checked', $(this).prop("checked"));
+			updateButtons();
+		});
+
+		$(".user-select").change(function () {
+			updateButtons();
+			if (false == $(this).prop("checked")) {
+				$("#selectAll").prop('checked', false);
+			}
+		});
+
+		function updateButtons() {
+			var count = $(".user-select:checked").length;
+			$("#secilenSayisi").text(count);
+			if (count > 0) {
+				$("#btnTopluSil").removeClass("disabled");
+			} else {
+				$("#btnTopluSil").addClass("disabled");
+			}
+		}
+
+		function topluSil() {
+			var selectedIds = $(".user-select:checked").map(function () {
+				return parseInt($(this).val());
+			}).get();
+
+			if (selectedIds.length === 0) return;
+
+			if (confirm(selectedIds.length + " adet kullanıcıyı silmek istediğinize emin misiniz? Bu işlem geri alınamaz!")) {
+
+				$.ajax({
+					url: '/Kullanici/TopluSil',
+					type: 'POST',
+					contentType: 'application/json',
+					data: JSON.stringify(selectedIds),
+					success: function (res) {
+						if (res.success) {
+							alert(res.message);
+							location.reload(); // Sayfayı yenile
+						} else {
+							alert("Hata: " + res.message);
+						}
+					},
+					error: function () {
+						alert("Sunucu ile iletişim hatası.");
+					}
+				});
+			}
+		}
+
+		// Sıralama fonksiyonu mevcut index sayfasından alınabilir veya ortak bir js dosyasına taşınabilir.
+	</script>
+}

@@ -120,5 +120,136 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			return View(model);
 		}
+
+		[Authorize(Roles = "Admin")] // Sadece Admin girebilsin
+		public async Task<IActionResult> Yonetim()
+		{
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await client.GetAsync("api/kullanicilar");
+
+			if (response.IsSuccessStatusCode)
+			{
+				var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<List<Kullanici>>>(options);
+				return View(result?.Veri ?? new List<Kullanici>());
+			}
+
+			return View(new List<Kullanici>());
+		}
+
+		// ... (Mevcut kodların altına ekleyin) ...
+
+		[Authorize(Roles = "Admin")]
+		[HttpGet]
+		public IActionResult Ekle()
+		{
+			// Boş bir form sayfası döndür
+			return View(new AdminUyeEkleDto());
+		}
+
+		[Authorize(Roles = "Admin")]
+		[HttpPost]
+		public async Task<IActionResult> Ekle(AdminUyeEkleDto model)
+		{
+			if (!ModelState.IsValid)
+				return View(model);
+
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			// API'de admin üye ekleme endpoint'i olduğunu varsayıyoruz
+			// Yoksa Auth/Register endpoint'i de kullanılabilir
+			var response = await client.PostAsJsonAsync("api/kullanicilar/admin-ekle", model);
+
+			if (response.IsSuccessStatusCode)
+			{
+				TempData["Basarili"] = "Yeni üye başarıyla eklendi.";
+				return RedirectToAction("Yonetim");
+			}
+
+			TempData["Hata"] = "Üye eklenirken bir hata oluştu. (Email veya Okul No çakışması olabilir)";
+			return View(model);
+		}
+
+		[Authorize(Roles = "Admin")]
+		[HttpGet]
+		public async Task<IActionResult> Duzenle(int id)
+		{
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await client.GetAsync($"api/kullanicilar/{id}");
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Kullanici>>();
+				if (result?.Veri != null)
+				{
+					// Kullanıcıyı bulduk, düzenleme sayfasına gönderelim
+					return View(result.Veri);
+				}
+			}
+
+			TempData["Hata"] = "Kullanıcı bulunamadı.";
+			return RedirectToAction("Yonetim");
+		}
+
+		[Authorize(Roles = "Admin")]
+		[HttpPost]
+		public async Task<IActionResult> Duzenle(Kullanici model)
+		{
+			// Validasyon kontrolü (Password alanlarını validasyondan çıkarıyoruz çünkü admin şifre değiştirmeyebilir)
+			ModelState.Remove("PasswordHash");
+			ModelState.Remove("PasswordSalt");
+
+			if (!ModelState.IsValid)
+				return View(model);
+
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await client.PutAsJsonAsync($"api/kullanicilar/{model.Id}", model);
+
+			if (response.IsSuccessStatusCode)
+			{
+				TempData["Basarili"] = "Kullanıcı bilgileri güncellendi.";
+				return RedirectToAction("Yonetim");
+			}
+
+			TempData["Hata"] = "Güncelleme başarısız oldu.";
+			return View(model);
+		}
+
+		[Authorize(Roles = "Admin")]
+		[HttpPost]
+		public async Task<IActionResult> TopluSil([FromBody] List<int> ids)
+		{
+			if (ids == null || !ids.Any())
+				return Json(new { success = false, message = "Hiçbir kayıt seçilmedi." });
+
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			int basariliSilinen = 0;
+
+			// API'de toplu silme endpoint'i yoksa döngü ile tek tek silinir
+			foreach (var id in ids)
+			{
+				var response = await client.DeleteAsync($"api/kullanicilar/{id}");
+				if (response.IsSuccessStatusCode)
+					basariliSilinen++;
+			}
+
+			if (basariliSilinen > 0)
+				return Json(new { success = true, message = $"{basariliSilinen} kullanıcı silindi." });
+
+			return Json(new { success = false, message = "Silme işlemi başarısız oldu." });
+		}
 	}
 }

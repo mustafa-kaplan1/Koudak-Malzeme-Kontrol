@@ -1,0 +1,56 @@
+@model KoudakMalzeme.Shared.Dtos.AdminUyeEkleDto
+@{
+	ViewData["Title"] = "Yeni Üye Ekle";
+}
+
+<div class="row justify-content-center">
+	<div class="col-md-6">
+		<div class="card shadow-sm border-0">
+			<div class="card-header bg-success text-white">
+				<h5 class="mb-0"><i class="fa-solid fa-user-plus me-2"></i> Yeni Üye Kaydı</h5>
+			</div>
+			<div class="card-body">
+				@if (TempData["Hata"] != null)
+				{
+					<div class="alert alert-danger">@TempData["Hata"]</div>
+				}
+
+				<form asp-action="Ekle" method="post">
+					<div class="mb-3">
+						<label asp-for="OkulNo" class="form-label fw-bold">Okul Numarası</label>
+						<input asp-for="OkulNo" class="form-control" placeholder="Örn: 2023101" required />
+						<span asp-validation-for="OkulNo" class="text-danger small"></span>
+					</div>
+
+					<div class="mb-3">
+						<label asp-for="Email" class="form-label fw-bold">E-Posta Adresi</label>
+						<input asp-for="Email" type="email" class="form-control" placeholder="ogrenci@okul.edu.tr"
+							required />
+						<span asp-validation-for="Email" class="text-danger small"></span>
+					</div>
+
+					<div class="row">
+						<div class="col-md-6 mb-3">
+							<label asp-for="Ad" class="form-label">Ad (Opsiyonel)</label>
+							<input asp-for="Ad" class="form-control" />
+						</div>
+						<div class="col-md-6 mb-3">
+							<label asp-for="Soyad" class="form-label">Soyad (Opsiyonel)</label>
+							<input asp-for="Soyad" class="form-control" />
+						</div>
+					</div>
+
+					<div class="alert alert-info small">
+						<i class="fa-solid fa-info-circle me-1"></i> Not: Üye ilk girişinde şifresini kendisi
+						belirleyecektir.
+					</div>
+
+					<div class="d-flex justify-content-between">
+						<a asp-action="Yonetim" class="btn btn-outline-secondary">İptal</a>
+						<button type="submit" class="btn btn-success px-4">Kaydet</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
