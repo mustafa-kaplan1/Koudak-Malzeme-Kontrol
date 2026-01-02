@@ -53,11 +53,21 @@ else
 
 						<h6 class="small text-uppercase fw-bold text-muted mb-2">İşlem Kalemleri</h6>
 						<ul class="list-group list-group-flush mb-3 border rounded-1">
-							@foreach (var detay in talep.EmanetDetaylari)
+							@{
+								// Eğer İade Talebiyse: Sadece 'IadeTalepEdilenAdet > 0' olanları göster ve o adedi yaz.
+								// Eğer Alma Talebiyse: Hepsini göster ve 'AlinanAdet'i yaz.
+								var gosterilecekDetaylar = iadeMi
+								? talep.EmanetDetaylari.Where(d => d.IadeTalepEdilenAdet > 0).ToList()
+								: talep.EmanetDetaylari;
+							}
+
+							@foreach (var detay in gosterilecekDetaylar)
 							{
+								var adetBilgisi = iadeMi ? detay.IadeTalepEdilenAdet : detay.AlinanAdet;
+
 								<li class="list-group-item d-flex justify-content-between align-items-center py-2">
 									<span>@detay.Malzeme?.Ad</span>
-									<span class="badge bg-secondary rounded-pill">x @detay.AlinanAdet</span>
+									<span class="badge bg-secondary rounded-pill">x @adetBilgisi</span>
 								</li>
 							}
 						</ul>

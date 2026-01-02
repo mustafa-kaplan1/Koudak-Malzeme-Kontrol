@@ -46,6 +46,7 @@
 							e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.KismenIadeEdildi ||
 							e.Durum == KoudakMalzeme.Shared.Enums.EmanetDurumu.IadeTalepEdildi)
 							.SelectMany(e => e.EmanetDetaylari)
+							.Where(d => d.KalanAdet > 0)
 							.ToList();
 
 							int parcaSayisi = aktifEmanetler?.Sum(d => d.KalanAdet) ?? 0;
