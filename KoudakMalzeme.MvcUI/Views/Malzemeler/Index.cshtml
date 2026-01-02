@@ -7,14 +7,35 @@
 <div class="container-fluid">
 	<div class="row mb-4 align-items-center">
 		<div class="col-md-6">
-			<h2 class="text-success fw-bold"><i class="fa-solid fa-boxes-stacked"></i> Malzeme Listesi</h2>
+			<h2 class="text-success fw-bold"></i> Malzeme Listesi</h2>
 		</div>
 		<div class="col-md-6">
-			<div class="input-group">
-				<span class="input-group-text bg-white border-end-0"><i
-						class="fa-solid fa-search text-muted"></i></span>
-				<input type="text" id="searchInput" class="form-control border-start-0"
-					placeholder="Malzeme adı ile ara..." autocomplete="off">
+			<div class="d-flex gap-2">
+				<select id="etiketFiltre" class="form-select border-secondary" style="max-width: 180px;">
+					<option value="">Tüm Etiketler</option>
+					@{
+
+						var tumEtiketler = Model
+						.Where(m => !string.IsNullOrEmpty(m.Etiketler))
+						.SelectMany(m => m.Etiketler.Split(','))
+						.Select(t => t.Trim())
+						.Where(t => !string.IsNullOrEmpty(t))
+						.Distinct()
+						.OrderBy(t => t)
+						.ToList();
+					}
+					@foreach (var etiket in tumEtiketler)
+					{
+						<option value="@etiket">@etiket</option>
+					}
+				</select>
+
+				<div class="input-group">
+					<span class="input-group-text bg-white border-end-0"><i
+							class="fa-solid fa-search text-muted"></i></span>
+					<input type="text" id="searchInput" class="form-control border-start-0"
+						placeholder="Malzeme adı ile ara..." autocomplete="off">
+				</div>
 			</div>
 		</div>
 	</div>
@@ -63,7 +84,7 @@
 							})
 							.ToList();
 
-							<tr>
+							<tr data-tags="@item.Etiketler">
 								<td>
 									<div class="d-flex align-items-center">
 										@if (!string.IsNullOrEmpty(item.GorselYolu))
@@ -210,14 +231,25 @@
 @section Scripts {
 	<script>
 		$(document).ready(function () {
-			$("#searchInput").on("keyup", function () {
-				var value = $(this).val().toLowerCase();
-				$("#malzemeTable tbody tr").filter(function () {
-					var text = $(this).find("td:eq(0)").text().toLowerCase();
-					$(this).toggle(text.indexOf(value) > -1)
-				});
+			$("#searchInput, #etiketFiltre").on("keyup change", function () {
+				filtrele();
 			});
 		});
+
+		function filtrele() {
+			var aramaMetni = $("#searchInput").val().toLowerCase();
+			var secilenEtiket = $("#etiketFiltre").val().toLowerCase();
+
+			$("#malzemeTable tbody tr").filter(function () {
+				var isim = $(this).find("td:eq(0)").text().toLowerCase();
+				var isimUyuyor = isim.indexOf(aramaMetni) > -1;
+
+				var etiketler = $(this).attr("data-tags") ? $(this).attr("data-tags").toLowerCase() : "";
+				var etiketUyuyor = secilenEtiket === "" || etiketler.indexOf(secilenEtiket) > -1;
+
+				$(this).toggle(isimUyuyor && etiketUyuyor);
+			});
+		}
 
 		function sortTable(n, isNumber = false) {
 			var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;

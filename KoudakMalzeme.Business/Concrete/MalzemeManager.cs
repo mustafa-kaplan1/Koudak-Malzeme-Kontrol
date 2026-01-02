@@ -56,17 +56,14 @@ namespace KoudakMalzeme.Business.Concrete
 			if (mevcut == null)
 				return ServiceResult<bool>.Basarisiz("Güncellenecek malzeme bulunamadı.");
 
-			// Sadece değişmesi gereken alanları güncelleyelim
 			mevcut.Ad = malzeme.Ad;
 			mevcut.Aciklama = malzeme.Aciklama;
 			mevcut.GorselYolu = malzeme.GorselYolu;
 
-			// Stok değişimi kritik olabilir, burada basitçe güncelliyoruz 
-			// ama normalde stok hareketleriyle güncellenmeli.
+			mevcut.Etiketler = malzeme.Etiketler;
 			mevcut.ToplamStok = malzeme.ToplamStok;
 
-			// Eğer toplam stok artırıldıysa güncel stoğu da artırabiliriz (opsiyonel mantık)
-			// Şimdilik manuel bırakıyoruz.
+			// Eğer toplam stok artırıldıysa güncel stoğu da artır (DAHA SONRA EKLENECEK)
 
 			_context.Malzemeler.Update(mevcut);
 			await _context.SaveChangesAsync();

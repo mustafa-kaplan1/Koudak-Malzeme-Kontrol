@@ -6,13 +6,37 @@
 <div class="container-fluid">
 	<div class="d-flex justify-content-between align-items-center mb-4">
 		<div>
-			<h2 class="text-success fw-bold"><i class="fa-solid fa-cart-plus"></i> Malzeme Talep Et</h2>
+			<h2 class="text-success fw-bold"> Malzeme Talep Et</h2>
 			<p class="text-muted">İhtiyacınız olan malzemeleri seçip liste oluşturun.</p>
 		</div>
 
+		<div class="card bg-light border-0 mb-3 p-3">
+			<div class="d-flex gap-2">
+				<select id="etiketFiltreAl" class="form-select border-secondary" style="max-width: 200px;">
+					<option value="">Tüm Kategoriler</option>
+					@{
+						var tumEtiketler = Model
+						.Where(m => !string.IsNullOrEmpty(m.Etiketler))
+						.SelectMany(m => m.Etiketler.Split(','))
+						.Select(t => t.Trim())
+						.Where(t => !string.IsNullOrEmpty(t))
+						.Distinct()
+						.OrderBy(t => t)
+						.ToList();
+					}
+					@foreach (var etiket in tumEtiketler)
+					{
+						<option value="@etiket">@etiket</option>
+					}
+				</select>
+
+				<input type="text" id="searchInputAl" class="form-control" placeholder="Listede malzeme ara..."
+					autocomplete="off">
+			</div>
+		</div>
+
 		<button class="btn btn-primary btn-lg position-relative" id="btnSepet" data-bs-toggle="modal"
-			data-bs-target="#modalTalep" disabled>
-			<i class="fa-solid fa-paper-plane"></i> Talebi Gönder
+			data-bs-target="#modalTalep" disabled> Talebi Gönder
 			<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
 				id="sepetSayisi" style="display:none;">
 				0
@@ -36,7 +60,7 @@
 						@foreach (var item in Model)
 						{
 							bool stokYok = item.GuncelStok <= 0;
-							<tr class="@(stokYok ? "table-secondary opacity-75" : "")">
+							<tr class="item-row @(stokYok ? "table-secondary opacity-75" : "")" data-tags="@item.Etiketler">
 								<td class="text-center">
 									<input type="checkbox" class="form-check-input malzeme-secim scale-125"
 										data-id="@item.Id" data-ad="@item.Ad" data-stok="@item.GuncelStok" @(stokYok ?
@@ -138,6 +162,24 @@
 			guncelleSepet();
 		});
 
+		$("#searchInputAl, #etiketFiltreAl").on("keyup change", function () {
+			var aramaMetni = $("#searchInputAl").val().toLowerCase();
+			var secilenEtiket = $("#etiketFiltreAl").val().toLowerCase();
+
+			$(".item-row").filter(function () {
+				// Malzeme adı (Emanet Al sayfasında 2. sütunda yer alıyor, index: 1)
+				// td içindeki div, onun içindeki span vs. olduğu için direkt text() alıp temizliyoruz.
+				var isim = $(this).find("td:eq(1)").text().toLowerCase();
+
+				var etiketler = $(this).attr("data-tags") ? $(this).attr("data-tags").toLowerCase() : "";
+
+				var isimUyuyor = isim.indexOf(aramaMetni) > -1;
+				var etiketUyuyor = secilenEtiket === "" || etiketler.indexOf(secilenEtiket) > -1;
+
+				$(this).toggle(isimUyuyor && etiketUyuyor);
+			});
+		});
+
 		// Miktar kontrolü
 		$('.miktar-input').on('input', function () {
 			var max = parseInt($(this).attr('max'));
@@ -164,9 +206,9 @@
 				var ad = $(this).data('ad');
 				var adet = row.find('.miktar-input').val();
 				html += `<li class="list-group-item d-flex justify-content-between align-items-center">
-		                            <span><i class="fa-solid fa-box-open text-muted me-2"></i>${ad}</span>
-		                            <span class="badge bg-primary rounded-pill">${adet} Adet</span>
-		                         </li>`;
+									                            <span><i class="fa-solid fa-box-open text-muted me-2"></i>${ad}</span>
+									                            <span class="badge bg-primary rounded-pill">${adet} Adet</span>
+									                         </li>`;
 			});
 			$('#talepListesi').html(html);
 		}
