@@ -3,8 +3,8 @@
 	ViewData["Title"] = "Emanet Kayıtları";
 }
 
-<h2 class="mb-4 text-primary"><i class="fa-solid fa-list-check"></i> Emanet Kayıtları</h2>
-<div class="card shadow-sm">
+<h2 class="text-success fw-bold"> Emanet Kayıtları</h2>
+<div class=" card shadow-sm">
 	<div class="card-body">
 		<div class="table-responsive">
 			<table class="table table-hover align-middle">
@@ -93,10 +93,12 @@
 						}
 					</ul>
 
-					<div class="alert alert-secondary mb-0" style="white-space: pre-wrap;">
-						<i class="fa-solid fa-circle-info me-2"></i><b>Malzemeci
-							Notu:</b><br />@(string.IsNullOrEmpty(item.MalzemeciNotu) ? "Not girilmemiş." :
-											item.MalzemeciNotu)
+					<div class="alert alert-secondary mb-0">
+						<div class="fw-bold mb-1">
+							<i class="fa-solid fa-circle-info me-2"></i>Malzemeci Notu:
+						</div>
+						<div style="white-space: pre-wrap;">@(string.IsNullOrEmpty(item.MalzemeciNotu) ? "Not girilmemiş." :
+													item.MalzemeciNotu)</div>
 					</div>
 				</div>
 				<div class="modal-footer bg-light">

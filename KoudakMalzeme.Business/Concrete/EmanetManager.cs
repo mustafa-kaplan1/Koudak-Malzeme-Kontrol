@@ -142,10 +142,9 @@ namespace KoudakMalzeme.Business.Concrete
 				}
 			}
 
-			// SENARYO A: Malzeme Alma Talebi (Değişiklik Yok)
+			// Malzeme Alma Talebi
 			if (emanet.Durum == EmanetDurumu.TalepEdildi)
 			{
-				// ... (Eski kodunuzdaki alma mantığı aynen kalacak) ...
 				foreach (var detay in emanet.EmanetDetaylari)
 				{
 					if (detay.Malzeme.GuncelStok < detay.AlinanAdet)
@@ -154,9 +153,9 @@ namespace KoudakMalzeme.Business.Concrete
 				}
 				emanet.Durum = EmanetDurumu.TeslimEdildi;
 				emanet.VerenPersonelId = dto.PersonelId;
-				// ...
+				emanet.TeslimAlmaTarihi = DateTime.Now;
 			}
-			// SENARYO B: Malzeme İade Talebi (YENİ MANTIK)
+			// Malzeme İade Talebi
 			else if (emanet.Durum == EmanetDurumu.IadeTalepEdildi)
 			{
 				foreach (var detay in emanet.EmanetDetaylari)

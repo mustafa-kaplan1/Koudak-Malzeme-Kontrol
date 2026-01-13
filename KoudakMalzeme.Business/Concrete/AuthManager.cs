@@ -127,8 +127,6 @@ namespace KoudakMalzeme.Business.Concrete
 			return ServiceResult<bool>.Basarili(true);
 		}
 
-		// --- YENİ EKLENEN METOTLAR (DOĞRU YERDE) ---
-
 		public async Task<ServiceResult<List<Kullanici>>> TumKullanicilariGetirAsync()
 		{
 			var kullanicilar = await _context.Kullanicilar

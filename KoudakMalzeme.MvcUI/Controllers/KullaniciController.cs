@@ -140,8 +140,6 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			return View(new List<Kullanici>());
 		}
 
-		// ... (Mevcut kodların altına ekleyin) ...
-
 		[Authorize(Roles = "Admin")]
 		[HttpGet]
 		public IActionResult Ekle()
@@ -161,9 +159,7 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			var token = User.FindFirst("Token")?.Value;
 			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-			// API'de admin üye ekleme endpoint'i olduğunu varsayıyoruz
-			// Yoksa Auth/Register endpoint'i de kullanılabilir
-			var response = await client.PostAsJsonAsync("api/kullanicilar/admin-ekle", model);
+			var response = await client.PostAsJsonAsync("api/auth/admin-uye-ekle", model);
 
 			if (response.IsSuccessStatusCode)
 			{
@@ -171,7 +167,9 @@ namespace KoudakMalzeme.MvcUI.Controllers
 				return RedirectToAction("Yonetim");
 			}
 
-			TempData["Hata"] = "Üye eklenirken bir hata oluştu. (Email veya Okul No çakışması olabilir)";
+			var errorResponse = await response.Content.ReadFromJsonAsync<ServiceResult<object>>();
+			TempData["Hata"] = errorResponse?.Mesaj ?? "Üye eklenirken bir hata oluştu.";
+
 			return View(model);
 		}
 

@@ -5,7 +5,6 @@
 
 <div class="row">
 	<div class="col-md-4 mb-4">
-		@* Kısaltmak için burayı atlıyorum, değişiklik yok *@
 		<div class="card shadow border-0 text-center h-100">
 			<div class="card-body">
 				<div class="bg-success text-white rounded-circle mx-auto d-flex justify-content-center align-items-center mb-3 display-4 shadow"
@@ -143,41 +142,6 @@
 											}
 										</td>
 									</tr>
-
-									<div class="modal fade" id="detayModal-@emanet.Id" tabindex="-1" aria-hidden="true">
-										<div class="modal-dialog modal-dialog-centered">
-											<div class="modal-content">
-												<div class="modal-header bg-light">
-													<h5 class="modal-title text-primary fw-bold">Emanet Detayı (#@emanet.Id)
-													</h5>
-													<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-												</div>
-												<div class="modal-body">
-													<h6 class="text-muted small text-uppercase fw-bold mb-3">Malzemeler</h6>
-													<ul class="list-group list-group-flush border rounded mb-3">
-														@foreach (var d in emanet.EmanetDetaylari)
-														{
-															<li
-																class="list-group-item d-flex justify-content-between align-items-center">
-																<span>@d.Malzeme?.Ad</span>
-																<div>
-																	<span class="badge bg-primary rounded-pill me-1">Alınan:
-																		@d.AlinanAdet</span>
-																	<span class="badge bg-secondary rounded-pill">İade:
-																		@d.IadeEdilenAdet</span>
-																</div>
-															</li>
-														}
-													</ul>
-													<div class="alert alert-light border" style="white-space: pre-wrap;">
-														<i
-															class="fa-solid fa-circle-info me-2"></i><b>Not:</b><br />@(string.IsNullOrEmpty(emanet.MalzemeciNotu)
-																										? "-" : emanet.MalzemeciNotu)
-													</div>
-												</div>
-											</div>
-										</div>
-									</div>
 								}
 							</tbody>
 						</table>
@@ -187,3 +151,39 @@
 		</div>
 	</div>
 </div>
+
+@foreach (var emanet in Model.Emanetler)
+{
+	<div class="modal fade" id="detayModal-@emanet.Id" tabindex="-1" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header bg-light">
+					<h5 class="modal-title text-primary fw-bold">Emanet Detayı (#@emanet.Id)</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<h6 class="text-muted small text-uppercase fw-bold mb-3">Malzemeler</h6>
+					<ul class="list-group list-group-flush border rounded mb-3">
+						@foreach (var d in emanet.EmanetDetaylari)
+						{
+							<li class="list-group-item d-flex justify-content-between align-items-center">
+								<span>@d.Malzeme?.Ad</span>
+								<div>
+									<span class="badge bg-primary rounded-pill me-1">Alınan: @d.AlinanAdet</span>
+									<span class="badge bg-secondary rounded-pill">İade: @d.IadeEdilenAdet</span>
+								</div>
+							</li>
+						}
+					</ul>
+					<div class="alert alert-light border">
+						<div class="fw-bold mb-1">
+							<i class="fa-solid fa-circle-info me-2"></i>Malzemeci Notu:
+						</div>
+						<div style="white-space: pre-wrap;">@(string.IsNullOrEmpty(emanet.MalzemeciNotu) ? "-" :
+													emanet.MalzemeciNotu)</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

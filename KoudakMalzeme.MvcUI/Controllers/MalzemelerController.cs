@@ -119,17 +119,10 @@ namespace KoudakMalzeme.MvcUI.Controllers
 		[HttpPost]
 		public async Task<IActionResult> Duzenle(Malzeme model)
 		{
-			// Modelde GecmisEmanetler gibi alanlar null gelebilir, bunları Entity'den temizlemek gerekebilir
-			// Ancak API tarafı genellikle sadece gerekli alanları alır.
-
 			var client = _httpClientFactory.CreateClient("ApiClient");
 			var token = User.FindFirst("Token")?.Value;
 			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-			// Güncel stok hesabı kritik olduğu için, genellikle backend'de ayrıca kontrol edilir.
-			// Burada basitçe gönderiyoruz.
-			var response = await client.PutAsJsonAsync($"api/malzemeler/{model.Id}", model);
-
+			var response = await client.PutAsJsonAsync("api/malzemeler", model);
 			if (response.IsSuccessStatusCode)
 			{
 				TempData["Basarili"] = "Malzeme güncellendi.";
