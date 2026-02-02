@@ -12,10 +12,11 @@ namespace KoudakMalzeme.Shared.Entities
 		public string Telefon { get; set; }
 		public string? ProfilResmiYolu { get; set; }
 
-		public byte[] PasswordHash { get; set; }
-		public byte[] PasswordSalt { get; set; }
+		public byte[]? PasswordHash { get; set; }
+		public byte[]? PasswordSalt { get; set; }
 		public KullaniciRolu Rol { get; set; }
-		public ICollection<Emanet> AldigiEmanetler { get; set; }
+		public ICollection<Emanet>? AldigiEmanetler { get; set; }
 		public bool IlkGirisYapildiMi { get; set; } = false;
+		public string? GeçiciŞifre { get; set; }
 	}
 }

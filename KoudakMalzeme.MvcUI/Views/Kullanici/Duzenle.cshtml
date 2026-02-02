@@ -12,8 +12,6 @@
 			<div class="card-body">
 				<form asp-action="Duzenle" method="post">
 					<input type="hidden" asp-for="Id" />
-					<input type="hidden" asp-for="PasswordHash" />
-					<input type="hidden" asp-for="PasswordSalt" />
 
 					<div class="row">
 						<div class="col-md-6 mb-3">
@@ -52,16 +50,39 @@
 					{
 						<hr class="my-4" />
 						<h6 class="text-warning mb-3">
-							<i class="fa-solid fa-key me-2"></i> Geçici Şifre Düzenle
+							<i class="fa-solid fa-key me-2"></i> İlk Giriş Şifresi
 						</h6>
 						<div class="row">
 							<div class="col-md-8 mb-3">
-								<label class="form-label fw-bold">Yeni Geçici Şifre</label>
+								@if (!string.IsNullOrEmpty(Model.GeçiciŞifre))
+								{
+									<label class="form-label fw-bold">Mevcut Geçici Şifre</label>
+									<div class="input-group">
+										<input type="text" class="form-control" value="@Model.GeçiciŞifre" readonly />
+										<button type="button" class="btn btn-outline-secondary" title="Kopyala" onclick="copyToClipboard(this)">
+											<i class="fa-solid fa-copy"></i>
+										</button>
+									</div>
+									<small class="text-muted d-block mt-2">Bu kullanıcıya ilk girişte bu şifreyi kullanması gerekiyor. Şifreyi değiştirmek için aşağıdaki alanı doldurunuz.</small>
+								}
+								else
+								{
+									<div class="alert alert-info" role="alert">
+										<i class="fa-solid fa-info-circle me-2"></i>
+										Bu kullanıcı ilk girişini tamamlamıştır. Şifresi kalıcı olarak belirlenmiştir.
+									</div>
+								}
+							</div>
+						</div>
+
+						<div class="row">
+							<div class="col-md-8 mb-3">
+								<label class="form-label fw-bold">Yeni Geçici Şifre (İsteğe Bağlı)</label>
 								<div class="input-group">
 									<input type="text" id="tempPassword" class="form-control" placeholder="Şifre giriniz veya otomatik oluştur" />
 									<button type="button" id="generateTempBtn" class="btn btn-outline-secondary">Otomatik Oluştur</button>
 								</div>
-								<small class="text-muted d-block mt-2">Bu şifre kullanıcının ilk girişini tamamladıktan sonra değiştirilecektir.</small>
+								<small class="text-muted d-block mt-2">Boş bırakırsanız mevcut şifre değiştirilmeyecektir.</small>
 								<input type="hidden" name="TempPassword" id="tempPasswordHidden" />
 								<input type="hidden" name="GenerateTempRandom" id="generateTempRandomHidden" value="false" />
 							</div>
@@ -87,6 +108,15 @@
 
 @section Scripts {
 	<script>
+		function copyToClipboard(btn) {
+			const input = btn.previousElementSibling;
+			navigator.clipboard.writeText(input.value).then(() => {
+				const originalTitle = btn.title;
+				btn.title = "Kopyalandı!";
+				setTimeout(() => btn.title = originalTitle, 2000);
+			});
+		}
+
 		function generateStrongPassword(length) {
 			length = length || 16;
 			var upper = "ABCDEFGHJKLMNOPQRSTUVWXYZ";

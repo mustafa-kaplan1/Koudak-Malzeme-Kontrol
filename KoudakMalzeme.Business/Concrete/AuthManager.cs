@@ -109,6 +109,7 @@ namespace KoudakMalzeme.Business.Concrete
 				PasswordHash = passwordHash,
 				PasswordSalt = passwordSalt,
 				IlkGirisYapildiMi = false,
+				GeçiciŞifre = geciciSifre, // Geçici şifreyi kaydet
 				OlusturulmaTarihi = DateTime.Now
 			};
 
@@ -146,6 +147,7 @@ namespace KoudakMalzeme.Business.Concrete
 
 			user.PasswordHash = passwordHash;
 			user.PasswordSalt = passwordSalt;
+			user.GeçiciŞifre = yeniSifre; // Geçici şifreyi kaydet
 			user.IlkGirisYapildiMi = false; // Admin sets temporary password; user must complete first login
 
 			await _context.SaveChangesAsync();
@@ -191,6 +193,7 @@ namespace KoudakMalzeme.Business.Concrete
 			user.Telefon = dto.Telefon;
 			user.PasswordHash = passwordHash;
 			user.PasswordSalt = passwordSalt;
+			user.GeçiciŞifre = null; // Geçici şifre temizle (artık kalıcı şifre belirlenmiş)
 			user.IlkGirisYapildiMi = true; // Artık kurulum tamamlandı
 
 			await _context.SaveChangesAsync();
@@ -236,6 +239,12 @@ namespace KoudakMalzeme.Business.Concrete
 				existingUser.OkulNo = kullanici.OkulNo;
 				existingUser.Rol = kullanici.Rol;
 				existingUser.IlkGirisYapildiMi = kullanici.IlkGirisYapildiMi;
+
+				// Eğer ilk giriş yapıldıysa, geçici şifreyi temizle
+				if (kullanici.IlkGirisYapildiMi)
+				{
+					existingUser.GeçiciŞifre = null;
+				}
 
 				_context.Kullanicilar.Update(existingUser);
 				await _context.SaveChangesAsync();

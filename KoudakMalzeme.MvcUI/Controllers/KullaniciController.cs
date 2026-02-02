@@ -219,18 +219,40 @@ namespace KoudakMalzeme.MvcUI.Controllers
 		[HttpPost]
 		public async Task<IActionResult> Duzenle(Kullanici model, string? TempPassword = null, string? GenerateTempRandom = "false")
 		{
-			// Validasyon kontrolü (Password alanlarını validasyondan çıkarıyoruz çünkü admin şifre değiştirmeyebilir)
+			// Validasyon kontrolü
 			ModelState.Remove("PasswordHash");
 			ModelState.Remove("PasswordSalt");
+			ModelState.Remove("AldigiEmanetler"); // Navigation property'yi çıkar
+			ModelState.Remove("GeçiciŞifre"); // Bağımsız olarak güncellenir
 
 			if (!ModelState.IsValid)
+			{
+				// Debug: hataları log et
+				var errors = ModelState.Where(x => x.Value.Errors.Count > 0)
+					.ToDictionary(x => x.Key, x => x.Value.Errors.Select(e => e.ErrorMessage).ToList());
+				
 				return View(model);
+			}
 
 			var client = _httpClientFactory.CreateClient("ApiClient");
 			var token = User.FindFirst("Token")?.Value;
 			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-			var response = await client.PutAsJsonAsync($"api/kullanicilar/{model.Id}", model);
+			// Sadece güncellenebilir alanları içeren object oluştur
+			// (PasswordHash, PasswordSalt, AldigiEmanetler gönderme!)
+			var updateModel = new
+			{
+				Id = model.Id,
+				Ad = model.Ad,
+				Soyad = model.Soyad,
+				Email = model.Email,
+				Telefon = model.Telefon,
+				OkulNo = model.OkulNo,
+				Rol = model.Rol,
+				IlkGirisYapildiMi = model.IlkGirisYapildiMi
+			};
+
+			var response = await client.PutAsJsonAsync($"api/kullanicilar/{model.Id}", updateModel);
 
 			if (response.IsSuccessStatusCode)
 			{
@@ -262,9 +284,13 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 				return RedirectToAction("Yonetim");
 			}
-
-			TempData["Hata"] = "Güncelleme başarısız oldu.";
-			return View(model);
+			else
+			{
+				// API hata döndürdüyse
+				var errorContent = await response.Content.ReadAsStringAsync();
+				TempData["Hata"] = "Güncelleme başarısız oldu. API: " + errorContent;
+				return View(model);
+			}
 		}
 
 		[Authorize(Roles = "Admin")]
