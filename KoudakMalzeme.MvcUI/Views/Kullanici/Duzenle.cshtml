@@ -48,6 +48,26 @@
 						<input asp-for="Telefon" class="form-control" />
 					</div>
 
+					@if (!Model.IlkGirisYapildiMi)
+					{
+						<hr class="my-4" />
+						<h6 class="text-warning mb-3">
+							<i class="fa-solid fa-key me-2"></i> Geçici Şifre Düzenle
+						</h6>
+						<div class="row">
+							<div class="col-md-8 mb-3">
+								<label class="form-label fw-bold">Yeni Geçici Şifre</label>
+								<div class="input-group">
+									<input type="text" id="tempPassword" class="form-control" placeholder="Şifre giriniz veya otomatik oluştur" />
+									<button type="button" id="generateTempBtn" class="btn btn-outline-secondary">Otomatik Oluştur</button>
+								</div>
+								<small class="text-muted d-block mt-2">Bu şifre kullanıcının ilk girişini tamamladıktan sonra değiştirilecektir.</small>
+								<input type="hidden" name="TempPassword" id="tempPasswordHidden" />
+								<input type="hidden" name="GenerateTempRandom" id="generateTempRandomHidden" value="false" />
+							</div>
+						</div>
+					}
+
 					<div class="form-check mb-4">
 						<input asp-for="IlkGirisYapildiMi" class="form-check-input" type="checkbox" id="chkIlkGiris">
 						<label class="form-check-label text-muted" for="chkIlkGiris">
@@ -64,3 +84,38 @@
 		</div>
 	</div>
 </div>
+
+@section Scripts {
+	<script>
+		function generateStrongPassword(length) {
+			length = length || 16;
+			var upper = "ABCDEFGHJKLMNOPQRSTUVWXYZ";
+			var lower = "abcdefghijkmnopqrstuvwxyz";
+			var digits = "0123456789";
+			var special = "!@@#$%^&*()-_=+[]{};:,.<>?";
+			var all = upper + lower + digits + special;
+			var pwd = '';
+			pwd += upper[Math.floor(Math.random() * upper.length)];
+			pwd += lower[Math.floor(Math.random() * lower.length)];
+			pwd += digits[Math.floor(Math.random() * digits.length)];
+			pwd += special[Math.floor(Math.random() * special.length)];
+			for (var i = 4; i < length; i++) {
+				pwd += all[Math.floor(Math.random() * all.length)];
+			}
+			return pwd.split('').sort(function(){return 0.5-Math.random()}).join('');
+		}
+
+		document.getElementById('generateTempBtn')?.addEventListener('click', function (e) {
+			e.preventDefault();
+			var pwd = generateStrongPassword(16);
+			document.getElementById('tempPassword').value = pwd;
+			document.getElementById('tempPasswordHidden').value = pwd;
+			document.getElementById('generateTempRandomHidden').value = 'true';
+		});
+
+		document.getElementById('tempPassword')?.addEventListener('input', function () {
+			document.getElementById('tempPasswordHidden').value = this.value;
+			document.getElementById('generateTempRandomHidden').value = 'false';
+		});
+	</script>
+}

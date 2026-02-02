@@ -81,8 +81,21 @@ namespace KoudakMalzeme.Business.Concrete
 			if (await _context.Kullanicilar.AnyAsync(u => u.OkulNo == dto.OkulNo))
 				return ServiceResult<Kullanici>.Basarisiz("Bu okul numarası kullanımda.");
 
-			// Geçici şifre: Okul numarasının son 4 hanesi veya sabit bir değer
-			string geciciSifre = "Koudak123!";
+			// Geçici şifre: admin tarafından verildiği gibi kullanılacak veya oluşturulacak
+			string geciciSifre;
+			if (dto.GenerateRandom)
+			{
+				geciciSifre = GenerateStrongPassword();
+			}
+			else if (!string.IsNullOrEmpty(dto.Password))
+			{
+				geciciSifre = dto.Password!;
+			}
+			else
+			{
+				// Eski davranış: sabit geçici şifre
+				geciciSifre = "Koudak123!";
+			}
 			CreatePasswordHash(geciciSifre, out byte[] passwordHash, out byte[] passwordSalt);
 
 			var user = new Kullanici
@@ -103,6 +116,64 @@ namespace KoudakMalzeme.Business.Concrete
 			await _context.SaveChangesAsync();
 
 			return ServiceResult<Kullanici>.Basarili(user, $"Üye eklendi. Geçici Şifre: {geciciSifre}");
+		}
+
+		public async Task<ServiceResult<bool>> AdminGuncelleSifreAsync(KoudakMalzeme.Shared.Dtos.AdminGuncelleSifreDto dto)
+		{
+			var user = await _context.Kullanicilar.FindAsync(dto.KullaniciId);
+			if (user == null) return ServiceResult<bool>.Basarisiz("Kullanıcı bulunamadı.");
+
+			if (user.IlkGirisYapildiMi)
+			{
+				return ServiceResult<bool>.Basarisiz("Bu kullanıcının şifresi kullanıcı tarafından zaten belirlenmiş.");
+			}
+
+			string yeniSifre;
+			if (dto.GenerateRandom)
+			{
+				yeniSifre = GenerateStrongPassword();
+			}
+			else if (!string.IsNullOrEmpty(dto.YeniSifre))
+			{
+				yeniSifre = dto.YeniSifre!;
+			}
+			else
+			{
+				return ServiceResult<bool>.Basarisiz("Yeni şifre belirtilmedi.");
+			}
+
+			CreatePasswordHash(yeniSifre, out byte[] passwordHash, out byte[] passwordSalt);
+
+			user.PasswordHash = passwordHash;
+			user.PasswordSalt = passwordSalt;
+			user.IlkGirisYapildiMi = false; // Admin sets temporary password; user must complete first login
+
+			await _context.SaveChangesAsync();
+
+			return ServiceResult<bool>.Basarili(true, $"Geçici şifre güncellendi. Yeni Şifre: {yeniSifre}");
+		}
+
+		private string GenerateStrongPassword(int length = 16)
+		{
+			const string upper = "ABCDEFGHJKLMNOPQRSTUVWXYZ";
+			const string lower = "abcdefghijkmnopqrstuvwxyz";
+			const string digits = "0123456789";
+			const string special = "!@#$%^&*()-_=+[]{};:,.<>?";
+			var all = upper + lower + digits + special;
+			var rng = RandomNumberGenerator.Create();
+			var bytes = new byte[length];
+			rng.GetBytes(bytes);
+			var chars = new char[length];
+			for (int i = 0; i < length; i++)
+			{
+				chars[i] = all[bytes[i] % all.Length];
+			}
+			// Ensure at least one from each category
+			chars[0] = upper[bytes[0] % upper.Length];
+			chars[1] = lower[bytes[1] % lower.Length];
+			chars[2] = digits[bytes[2] % digits.Length];
+			chars[3] = special[bytes[3] % special.Length];
+			return new string(chars);
 		}
 
 		public async Task<ServiceResult<bool>> IlkGirisGuncellemeAsync(IlkGirisGuncellemeDto dto)
@@ -147,6 +218,53 @@ namespace KoudakMalzeme.Business.Concrete
 				return ServiceResult<Kullanici>.Basarisiz("Kullanıcı bulunamadı.");
 
 			return ServiceResult<Kullanici>.Basarili(kullanici);
+		}
+
+		public async Task<ServiceResult<bool>> UpdateUserAsync(Kullanici kullanici)
+		{
+			try
+			{
+				var existingUser = await _context.Kullanicilar.FindAsync(kullanici.Id);
+				if (existingUser == null)
+					return ServiceResult<bool>.Basarisiz("Kullanıcı bulunamadı.");
+
+				// Güncellenebilir alanları güncelle
+				existingUser.Ad = kullanici.Ad;
+				existingUser.Soyad = kullanici.Soyad;
+				existingUser.Email = kullanici.Email;
+				existingUser.Telefon = kullanici.Telefon;
+				existingUser.OkulNo = kullanici.OkulNo;
+				existingUser.Rol = kullanici.Rol;
+				existingUser.IlkGirisYapildiMi = kullanici.IlkGirisYapildiMi;
+
+				_context.Kullanicilar.Update(existingUser);
+				await _context.SaveChangesAsync();
+
+				return ServiceResult<bool>.Basarili(true, "Kullanıcı başarıyla güncellendi.");
+			}
+			catch (Exception ex)
+			{
+				return ServiceResult<bool>.Basarisiz($"Güncelleme sırasında hata: {ex.Message}");
+			}
+		}
+
+		public async Task<ServiceResult<bool>> DeleteUserAsync(int id)
+		{
+			try
+			{
+				var kullanici = await _context.Kullanicilar.FindAsync(id);
+				if (kullanici == null)
+					return ServiceResult<bool>.Basarisiz("Kullanıcı bulunamadı.");
+
+				_context.Kullanicilar.Remove(kullanici);
+				await _context.SaveChangesAsync();
+
+				return ServiceResult<bool>.Basarili(true, "Kullanıcı başarıyla silindi.");
+			}
+			catch (Exception ex)
+			{
+				return ServiceResult<bool>.Basarisiz($"Silme sırasında hata: {ex.Message}");
+			}
 		}
 
 		// --- Yardımcı Metotlar ---

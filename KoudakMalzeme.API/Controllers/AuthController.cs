@@ -1,6 +1,7 @@
 using KoudakMalzeme.Business.Abstract;
 using KoudakMalzeme.Shared.Dtos;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace KoudakMalzeme.API.Controllers
 {
@@ -31,6 +32,7 @@ namespace KoudakMalzeme.API.Controllers
 			return Ok(result);
 		}
 
+		[Authorize(Roles = "Admin")]
 		[HttpPost("admin-uye-ekle")]
 		public async Task<IActionResult> AdminUyeEkle(AdminUyeEkleDto request)
 		{
@@ -39,7 +41,15 @@ namespace KoudakMalzeme.API.Controllers
 			return Ok(result);
 		}
 
-		// --- DÜZELTİLEN KISIM BURASI ---
+		[Authorize(Roles = "Admin")]
+		[HttpPost("admin-guncelle-sifre")]
+		public async Task<IActionResult> AdminGuncelleSifre(KoudakMalzeme.Shared.Dtos.AdminGuncelleSifreDto request)
+		{
+			var result = await _authService.AdminGuncelleSifreAsync(request);
+			if (!result.BasariliMi) return BadRequest(result);
+			return Ok(result);
+		}
+
 		[HttpPost("ilk-giris-tamamla")]
 		public async Task<IActionResult> IlkGirisTamamla(IlkGirisGuncellemeDto request)
 		{

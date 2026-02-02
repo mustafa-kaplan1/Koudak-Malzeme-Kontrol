@@ -108,22 +108,20 @@ namespace KoudakMalzeme.MvcUI.Controllers
 		{
 			if (!ModelState.IsValid) return View(model);
 
-			// Kullanıcının ID'sini Token'dan (Claim'den) bulmamız lazım.
-			// API'deki AuthManager CreateToken metodunda "NameIdentifier" olarak ID koymuştuk.
+			// Kullanıcının ID'sini Cookie Claim'den al
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdStr))
+			{
+				TempData["Hata"] = "Kullanıcı kimliği belirlenemedi.";
+				return RedirectToAction("Login");
+			}
 
-			// Eğer Claims'de bulamazsak (JWT decode edilmediyse), alternatif çözüm lazım.
-			// Basitlik adına burada token'ı decode edelim:
-			var token = User.FindFirst("Token")?.Value;
-			var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-			var jwt = handler.ReadJwtToken(token);
-			var userId = jwt.Claims.First(c => c.Type == "nameid").Value;
-
-			model.KullaniciId = int.Parse(userId);
+			model.KullaniciId = int.Parse(userIdStr);
 
 			// API Çağrısı
 			var client = _httpClientFactory.CreateClient("ApiClient");
 			// Header'a Token ekle
+			var token = User.FindFirst("Token")?.Value;
 			client.DefaultRequestHeaders.Authorization =
 				new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 

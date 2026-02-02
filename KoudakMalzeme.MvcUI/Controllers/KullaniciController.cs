@@ -163,7 +163,8 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			if (response.IsSuccessStatusCode)
 			{
-				TempData["Basarili"] = "Yeni üye başarıyla eklendi.";
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<Kullanici>>();
+				TempData["Basarili"] = result?.Mesaj ?? "Yeni üye başarıyla eklendi.";
 				return RedirectToAction("Yonetim");
 			}
 
@@ -171,6 +172,24 @@ namespace KoudakMalzeme.MvcUI.Controllers
 			TempData["Hata"] = errorResponse?.Mesaj ?? "Üye eklenirken bir hata oluştu.";
 
 			return View(model);
+		}
+
+		[Authorize(Roles = "Admin")]
+		[HttpPost]
+		public async Task<IActionResult> AdminGuncelleSifre(KoudakMalzeme.Shared.Dtos.AdminGuncelleSifreDto model)
+		{
+			var client = _httpClientFactory.CreateClient("ApiClient");
+			var token = User.FindFirst("Token")?.Value;
+			client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+			var response = await client.PostAsJsonAsync("api/auth/admin-guncelle-sifre", model);
+			if (response.IsSuccessStatusCode)
+			{
+				var result = await response.Content.ReadFromJsonAsync<ServiceResult<bool>>();
+				return Json(new { success = true, message = result?.Mesaj ?? "Şifre güncellendi." });
+			}
+			var err = await response.Content.ReadFromJsonAsync<ServiceResult<object>>();
+			return Json(new { success = false, message = err?.Mesaj ?? "Şifre güncellenemedi." });
 		}
 
 		[Authorize(Roles = "Admin")]
@@ -198,7 +217,7 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 		[Authorize(Roles = "Admin")]
 		[HttpPost]
-		public async Task<IActionResult> Duzenle(Kullanici model)
+		public async Task<IActionResult> Duzenle(Kullanici model, string? TempPassword = null, string? GenerateTempRandom = "false")
 		{
 			// Validasyon kontrolü (Password alanlarını validasyondan çıkarıyoruz çünkü admin şifre değiştirmeyebilir)
 			ModelState.Remove("PasswordHash");
@@ -215,7 +234,32 @@ namespace KoudakMalzeme.MvcUI.Controllers
 
 			if (response.IsSuccessStatusCode)
 			{
-				TempData["Basarili"] = "Kullanıcı bilgileri güncellendi.";
+				// Eğer kullanıcı ilk girişini yapmamışsa ve şifre güncellemesi varsa
+				if (!model.IlkGirisYapildiMi && (!string.IsNullOrEmpty(TempPassword) || GenerateTempRandom == "true"))
+				{
+					var sifreDto = new KoudakMalzeme.Shared.Dtos.AdminGuncelleSifreDto
+					{
+						KullaniciId = model.Id,
+						YeniSifre = TempPassword,
+						GenerateRandom = GenerateTempRandom == "true"
+					};
+
+					var sifreResponse = await client.PostAsJsonAsync("api/auth/admin-guncelle-sifre", sifreDto);
+					if (sifreResponse.IsSuccessStatusCode)
+					{
+						var sifreResult = await sifreResponse.Content.ReadFromJsonAsync<ServiceResult<bool>>();
+						TempData["Basarili"] = sifreResult?.Mesaj ?? "Kullanıcı bilgileri ve şifre güncellendi.";
+					}
+					else
+					{
+						TempData["Uyari"] = "Kullanıcı bilgileri güncellendi ancak şifre güncellemesinde hata oluştu.";
+					}
+				}
+				else
+				{
+					TempData["Basarili"] = "Kullanıcı bilgileri güncellendi.";
+				}
+
 				return RedirectToAction("Yonetim");
 			}
 

@@ -10,15 +10,15 @@ namespace KoudakMalzeme.Business.Abstract
 		Task<ServiceResult<AuthResponseDto>> LoginAsync(UserLoginDto loginDto);
 		Task<ServiceResult<Kullanici>> RegisterAsync(UserRegisterDto registerDto);
 
-		// --- BU SATIRI SİLDİK: IlkGirisTamamlaAsync ---
-		// Task<ServiceResult<bool>> IlkGirisTamamlaAsync(IlkGirisGuncellemeDto dto); 
-
-		// Doğru metodun bu olduğunu varsayıyoruz (AuthManager'da bu var)
 		Task<ServiceResult<bool>> IlkGirisGuncellemeAsync(IlkGirisGuncellemeDto dto);
 
 		Task<ServiceResult<Kullanici>> AdminUyeEkleAsync(AdminUyeEkleDto dto);
 
+		Task<ServiceResult<bool>> AdminGuncelleSifreAsync(KoudakMalzeme.Shared.Dtos.AdminGuncelleSifreDto dto);
+
 		Task<ServiceResult<List<Kullanici>>> TumKullanicilariGetirAsync();
 		Task<ServiceResult<Kullanici>> GetirByIdAsync(int id);
+		Task<ServiceResult<bool>> UpdateUserAsync(Kullanici kullanici);
+		Task<ServiceResult<bool>> DeleteUserAsync(int id);
 	}
 }

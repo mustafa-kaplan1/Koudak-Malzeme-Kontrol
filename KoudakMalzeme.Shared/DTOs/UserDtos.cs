@@ -33,6 +33,10 @@ namespace KoudakMalzeme.Shared.Dtos
 		public string Email { get; set; } = string.Empty;
 		public string? Ad { get; set; }
 		public string? Soyad { get; set; }
+		// Opsiyonel: admin tarafından belirlenen geçici şifre
+		public string? Password { get; set; }
+		// Eğer true ise backend rastgele güçlü bir şifre oluşturur
+		public bool GenerateRandom { get; set; }
 	}
 
 	public class IlkGirisGuncellemeDto
@@ -43,5 +47,13 @@ namespace KoudakMalzeme.Shared.Dtos
 		public string Telefon { get; set; } = string.Empty;
 		public string YeniSifre { get; set; } = string.Empty;
 		public string YeniSifreTekrar { get; set; } = string.Empty;
+	}
+
+	public class AdminGuncelleSifreDto
+	{
+		public int KullaniciId { get; set; }
+		// Yeni geçici şifre (admin belirler) — isteğe bağlı olarak GenerateRandom kullanılabilir
+		public string? YeniSifre { get; set; }
+		public bool GenerateRandom { get; set; }
 	}
 }

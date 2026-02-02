@@ -45,6 +45,16 @@
 						belirleyecektir.
 					</div>
 
+					<div class="mb-3">
+						<label class="form-label fw-bold">Geçici Şifre (Opsiyonel)</label>
+						<div class="input-group">
+							<input name="Password" id="tempPassword" class="form-control" placeholder="Boş bırakılırsa otomatik/varsayılan şifre verilir" />
+							<button type="button" id="generateBtn" class="btn btn-outline-secondary">Otomatik Oluştur</button>
+							<input type="hidden" name="GenerateRandom" id="generateRandom" value="false" />
+						</div>
+						<small class="text-muted">İsterseniz buraya manuel şifre yazabilir veya otomatik oluşturabilirsiniz.</small>
+					</div>
+
 					<div class="d-flex justify-content-between">
 						<a asp-action="Yonetim" class="btn btn-outline-secondary">İptal</a>
 						<button type="submit" class="btn btn-success px-4">Kaydet</button>
@@ -54,3 +64,37 @@
 		</div>
 	</div>
 </div>
+
+@section Scripts {
+	<script>
+		function generateStrongPassword(length) {
+			length = length || 16;
+			var upper = "ABCDEFGHJKLMNOPQRSTUVWXYZ";
+			var lower = "abcdefghijkmnopqrstuvwxyz";
+			var digits = "0123456789";
+			var special = "!@@#$%^&*()-_=+[]{};:,.<>?";
+			var all = upper + lower + digits + special;
+			var pwd = '';
+			pwd += upper[Math.floor(Math.random() * upper.length)];
+			pwd += lower[Math.floor(Math.random() * lower.length)];
+			pwd += digits[Math.floor(Math.random() * digits.length)];
+			pwd += special[Math.floor(Math.random() * special.length)];
+			for (var i = 4; i < length; i++) {
+				pwd += all[Math.floor(Math.random() * all.length)];
+			}
+			// Shuffle
+			return pwd.split('').sort(function(){return 0.5-Math.random()}).join('');
+		}
+
+		document.getElementById('generateBtn').addEventListener('click', function () {
+			var pwd = generateStrongPassword(16);
+			document.getElementById('tempPassword').value = pwd;
+			document.getElementById('generateRandom').value = 'true';
+		});
+
+		document.getElementById('tempPassword').addEventListener('input', function () {
+			// If admin types manually, ensure GenerateRandom false
+			document.getElementById('generateRandom').value = 'false';
+		});
+	</script>
+}
